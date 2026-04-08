@@ -476,7 +476,7 @@ function TraditionsCard({ isMobile }) {
         </div>
         <div>
           <h3 className="text-sm font-black text-white">Youth Traditions</h3>
-          <p className="text-[10px] text-white/30">Governance highlights</p>
+          <p className="text-[10px] text-white/30">By the books</p>
         </div>
       </div>
       <div className="space-y-2">
