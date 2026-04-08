@@ -3,6 +3,10 @@ import { Sparkles, FileText, Calendar, BarChart3, BookOpen, Download } from 'luc
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { compileYFJReport } from '../api/aiService';
+import { useAuth } from '../context/AuthContext';
+
+const PRIVILEGED_ROLES = ['YFJ Chair', 'TC', 'Territory Coordinator', 'RC', 'Regional Coordinator', 'Deacon'];
+const RESTRICTED_ROLES = ['EY', 'YFJ'];
 
 const NOTES_KEY = 'yfj_notes';
 const MEETINGS_KEY = 'yfj_meetings';
@@ -43,15 +47,32 @@ function getDateRange(period) {
   return { start, end, label };
 }
 
-function buildContext(period) {
+function buildContext(period, userRole) {
   const { start, end, label } = getDateRange(period);
-  const notes = getData(NOTES_KEY).filter(n => { const d = new Date(n.createdAt); return d >= start && d <= end; });
-  const meetings = getData(MEETINGS_KEY).filter(m => { if (!m.date) return false; const d = new Date(m.date + 'T00:00:00'); return d >= start && d <= end; });
+  const isRestricted = RESTRICTED_ROLES.includes(userRole);
 
-  let ctx = `REPORT PERIOD: ${label.toUpperCase()}\nPERIOD TYPE: ${period.toUpperCase()} REPORT\n\n`;
-  ctx += `=== MEETINGS (${meetings.length} total) ===\n`;
-  if (!meetings.length) ctx += 'No meetings in this period.\n';
-  else meetings.forEach(m => {
+  const allNotes = getData(NOTES_KEY).filter(n => {
+    const d = new Date(n.createdAt);
+    const inRange = d >= start && d <= end;
+    const visible = !isRestricted || !PRIVILEGED_ROLES.includes(n.creatorRole || n.role);
+    return inRange && visible;
+  });
+
+  const allMeetings = getData(MEETINGS_KEY).filter(m => {
+    if (!m.date) return false;
+    const d = new Date(m.date + 'T00:00:00');
+    const inRange = d >= start && d <= end;
+    const visible = !isRestricted || !PRIVILEGED_ROLES.includes(m.creatorRole);
+    return inRange && visible;
+  });
+
+  let ctx = `REPORT PERIOD: ${label.toUpperCase()}\nPERIOD TYPE: ${period.toUpperCase()} REPORT\n`;
+  if (isRestricted) ctx += `ACCESS LEVEL: Standard (some privileged records excluded)\n`;
+  ctx += '\n';
+
+  ctx += `=== MEETINGS (${allMeetings.length} total) ===\n`;
+  if (!allMeetings.length) ctx += 'No meetings in this period.\n';
+  else allMeetings.forEach(m => {
     ctx += `\nMeeting: ${m.title}\n`;
     if (m.date) ctx += `Date: ${m.date}\n`;
     if (m.timeStart) ctx += `Time: ${m.timeStart}${m.timeEnd ? ' - ' + m.timeEnd : ''}\n`;
@@ -63,16 +84,21 @@ function buildContext(period) {
     if (m.notes) ctx += `Notes: ${m.notes}\n`;
   });
 
-  ctx += `\n=== MEETING NOTES (${notes.length} entries) ===\n`;
-  if (!notes.length) ctx += 'No notes in this period.\n';
-  else notes.forEach(n => {
-    ctx += `\nTitle: ${n.title}\nAuthor: ${n.author}${n.role ? ' (' + n.role + ')' : ''}\nDate: ${new Date(n.createdAt).toLocaleDateString()}\nContent:\n${n.content}\n`;
+  ctx += `\n=== MEETING NOTES (${allNotes.length} entries) ===\n`;
+  if (!allNotes.length) ctx += 'No notes in this period.\n';
+  else allNotes.forEach(n => {
+    ctx += `\nTitle: ${n.title}\nAuthor: ${n.author}${n.role ? ' (' + n.role + ')' : ''}\nDate: ${new Date(n.createdAt).toLocaleDateString()}\n`;
+    if (n.summary) ctx += `Summary: ${n.summary}\n`;
+    ctx += `Content:\n${n.details || n.content || ''}\n`;
   });
 
   return ctx;
 }
 
 export default function ReportsPanel() {
+  const { currentUser } = useAuth();
+  const userRole = currentUser?.role || '';
+
   const [period, setPeriod] = useState('weekly');
   const [report, setReport] = useState('');
   const [loading, setLoading] = useState(false);
@@ -84,7 +110,7 @@ export default function ReportsPanel() {
 
   const generate = async () => {
     setLoading(true); setReport(''); setViewSaved(null);
-    const context = buildContext(period);
+    const context = buildContext(period, userRole);
     const { label } = getDateRange(period);
     const prompt = `Generate a professional YFJ North America ${period} report for: ${label}\n\n${context}`;
     try {

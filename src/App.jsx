@@ -305,14 +305,8 @@ function DashboardPanel({ setActiveTab, currentUser, isMobile }) {
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
-          <div className="flex items-center gap-2.5 py-3 px-4 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(66,133,244,0.12), rgba(155,114,243,0.18))'}}>
-            <div className="w-8 h-8 rounded-xl gemini-gradient flex items-center justify-center flex-shrink-0">
-              <Sparkles size={15} className="text-white" />
-            </div>
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-purple-400">Motto</p>
-              <p className="text-xs font-bold text-white italic">"I understood by the books..."</p>
-            </div>
+          <div className="py-3 px-4 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(66,133,244,0.1), rgba(155,114,243,0.15))'}}>
+            <p className="text-xs font-bold text-white italic">"I understood by the books..."</p>
           </div>
         </div>
       </div>
