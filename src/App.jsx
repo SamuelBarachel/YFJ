@@ -475,7 +475,7 @@ function TraditionsCard({ isMobile }) {
           <BookOpen size={15} className="text-white" />
         </div>
         <div>
-          <h3 className="text-sm font-black text-white">Key Traditions</h3>
+          <h3 className="text-sm font-black text-white">Youth Traditions</h3>
           <p className="text-[10px] text-white/30">Governance highlights</p>
         </div>
       </div>
