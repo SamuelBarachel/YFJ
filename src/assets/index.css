@@ -401,6 +401,21 @@ select.yfj-input option { background: #0D1117; color: white; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(155,114,243,0.25); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(155,114,243,0.5); }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ===================== MOBILE SAFE AREA ===================== */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  .glass-card:hover { transform: none; background: rgba(255,255,255,0.035); }
+  .nav-item:hover { background: transparent; }
+  .btn-primary:hover { transform: none; box-shadow: 0 4px 20px rgba(155,114,243,0.3); }
+  .announcement-card:hover { transform: none; }
+}
 
 /* ===================== ANIMATION CLASSES ===================== */
 .animate-slide-up { animation: slide-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
