@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#080808] text-white antialiased overflow-x-hidden;
+  }
+}
+
+/* Gemini Gradient Animation */
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gemini-gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-[#4285f4] via-[#9b72f3] to-[#d96570];
+  background-size: 200% auto;
+  animation: gradient-flow 5s linear infinite;
+}
+
+/* High-End Glassmorphism */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Custom button glow */
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(155, 114, 243, 0.4);
+}
