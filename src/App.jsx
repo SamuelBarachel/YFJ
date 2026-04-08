@@ -458,11 +458,9 @@ function UpcomingMeetings({ setActiveTab, isMobile }) {
 
 function TraditionsCard({ isMobile }) {
   const traditions = [
-    { text: 'All meetings open with prayer and the reading of the Motto.', color: '#4285f4' },
-    { text: 'Quorum requires 2/3 of confirmed leadership present.', color: '#9b72f3' },
-    { text: 'Minutes must begin with "I understood by the books..."', color: '#d96570' },
-    { text: 'Kingdom Activities must be reported at the next meeting.', color: '#34a853' },
-    { text: 'Three unexcused absences trigger a pastoral follow-up.', color: '#fbbc04' },
+    { JRM Youth traditions are instructions and guidelines expected from all the boys and girls(in the flesh), who believe in the doctrine of Christ.', color: '#4285f4' },
+    { text: 'The ministers of the gospel or the senior stewards responsible for the youth department ordain these traditions', color: '#9b72f3' },
+    
   ];
   return (
     <div className="section-card p-5 md:p-6">
