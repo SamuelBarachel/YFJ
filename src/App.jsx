@@ -487,7 +487,7 @@ function TraditionsCard({ isMobile }) {
           </div>
         ))}
       </div>
-      <a href="/traditions.txt" target="_blank" rel="noopener noreferrer" className="mt-4 text-[10px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors">
+      <a href="/traditions.pdf" target="_blank" rel="noopener noreferrer" className="mt-4 text-[10px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors">
         <BookOpen size={10} /> Full Traditions Document
       </a>
     </div>
