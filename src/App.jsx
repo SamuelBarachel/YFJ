@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
-import { registerUser, loginWithCode } from './firebase/auth';
+import { registerUser } from './firebase/auth'; // Removed loginWithCode if using Firebase Email Auth
 import { compileYFJReport } from './api/aiService';
 import ReportDisplay from './components/ReportDisplay';
+import AttendanceChart from './components/AttendanceChart'; // Added the missing chart
+import './assets/index.css'; // CRITICAL: This links your Gemini gradients
+
 import { 
   Users, 
   FileText, 
@@ -20,53 +23,58 @@ export default function App() {
   const [report, setReport] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Registration State
+  // Registration State (Email/Password)
   const [regData, setRegData] = useState({ email: '', password: '', fullName: '', role: 'EY' });
 
-  // 1. Auth Guard / Login View
+  // 1. GUEST VIEW (Login / Registration)
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-[#080808] flex items-center justify-center p-6 selection:bg-gemini-purple/30">
+      <div className="min-h-screen bg-[#080808] flex items-center justify-center p-6 selection:bg-purple-500/30">
+        {/* Animated Gemini Background Blur */}
         <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 blur-[120px]" />
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-[#4285f4]/10 blur-[120px] animate-pulse-slow" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#9b72f3]/10 blur-[120px] animate-pulse-slow" />
         </div>
 
-        <div className="relative z-10 w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl">
+        <div className="relative z-10 w-full max-w-md glass-card p-10">
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-black bg-gradient-to-r from-[#4285f4] via-[#9b72f3] to-[#d96570] bg-clip-text text-transparent mb-3">
+            <h1 className="text-4xl font-black gemini-gradient-text mb-3">
               YFJ North America
             </h1>
-            <p className="text-gray-400 italic">"I understood by the books ..."</p>
+            <p className="text-gray-400 italic font-light">"I understood by the books ..."</p>
           </div>
 
           <form className="space-y-4" onSubmit={async (e) => {
             e.preventDefault();
-            const { accessCode } = await registerUser(regData.email, regData.password, regData.fullName, regData.role);
-            alert(`Registration successful! Your Unique Access Code: ${accessCode}\nWait for TC/RC approval.`);
+            try {
+              const { accessCode } = await registerUser(regData.email, regData.password, regData.fullName, regData.role);
+              alert(`Success! Code: ${accessCode}\nWait for admin approval.`);
+            } catch (err) {
+              alert(err.message);
+            }
           }}>
             <input 
-              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder:text-gray-600 focus:border-gemini-blue outline-none transition"
+              className="gemini-input"
               placeholder="Full Name"
               onChange={(e) => setRegData({...regData, fullName: e.target.value})}
               required
             />
             <input 
-              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder:text-gray-600 focus:border-gemini-blue outline-none transition"
+              className="gemini-input"
               placeholder="Email"
               type="email"
               onChange={(e) => setRegData({...regData, email: e.target.value})}
               required
             />
             <input 
-              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder:text-gray-600 focus:border-gemini-blue outline-none transition"
+              className="gemini-input"
               placeholder="Password"
               type="password"
               onChange={(e) => setRegData({...regData, password: e.target.value})}
               required
             />
             <select 
-              className="w-full bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-gray-400 outline-none"
+              className="gemini-input bg-[#1a1a1a]"
               onChange={(e) => setRegData({...regData, role: e.target.value})}
             >
               <option value="EY">EY</option>
@@ -75,7 +83,7 @@ export default function App() {
               <option value="TC">TC</option>
               <option value="RC/Deacon">RC/Deacon</option>
             </select>
-            <button className="w-full py-4 bg-gradient-to-r from-[#4285f4] to-[#9b72f3] rounded-2xl font-bold text-white hover:opacity-90 transition transform active:scale-95 shadow-lg shadow-blue-500/20">
+            <button className="gemini-button w-full">
               Request Access
             </button>
           </form>
@@ -84,26 +92,25 @@ export default function App() {
     );
   }
 
-  // 2. Main Dashboard View
+  // 2. PRIVILEGE CHECK
   const isPrivileged = ["RC/Deacon", "TC", "YFJ Chair"].includes(currentUser.role);
-  const canWriteReport = isPrivileged || (currentUser.role === "YFJ Leader/Not Chair" && currentUser.authorized);
 
   return (
     <div className="min-h-screen bg-[#080808] text-white flex">
-      
-      {/* Sidebar Navigation */}
+      {/* Sidebar */}
       <nav className="w-20 lg:w-64 border-r border-white/5 bg-white/[0.02] backdrop-blur-xl flex flex-col p-4 lg:p-6">
-        <div className="mb-10 px-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+        <div className="mb-10 px-2 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gemini-gradient flex items-center justify-center">
             <Sparkles className="text-white size-6" />
           </div>
+          <span className="hidden lg:block font-black text-sm tracking-tighter">YFJ NORTH AMERICA</span>
         </div>
 
         <div className="flex-1 space-y-2">
           <NavButton icon={<FileText />} label="Meeting Notes" active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} />
           <NavButton icon={<BarChart3 />} label="Attendance" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
           {isPrivileged && (
-            <NavButton icon={<ShieldCheck />} label="Admin" active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} />
+            <NavButton icon={<ShieldCheck />} label="Admin Control" active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} />
           )}
         </div>
 
@@ -114,86 +121,72 @@ export default function App() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-6 lg:p-12 relative">
+      <main className="flex-1 overflow-y-auto p-6 lg:p-12">
         <div className="max-w-5xl mx-auto">
-          
-          <header className="mb-12 flex justify-between items-start">
-            <div>
-              <h2 className="text-sm font-bold text-gemini-purple uppercase tracking-[0.2em] mb-2">
-                {currentUser.role} Dashboard
-              </h2>
-              <h1 className="text-4xl font-bold">Welcome, {currentUser.fullName}</h1>
-              <p className="text-gray-500 mt-2 font-mono text-sm uppercase tracking-widest">
-                Access Code: <span className="text-white">{currentUser.accessCode}</span>
-              </p>
-            </div>
+          <header className="mb-12">
+            <h2 className="text-xs font-bold text-[#9b72f3] uppercase tracking-[0.3em] mb-2">
+              {currentUser.role} Portal
+            </h2>
+            <h1 className="text-4xl font-bold">Shalom, {currentUser.fullName}</h1>
+            <p className="text-gray-500 mt-2 font-mono">ID: {currentUser.accessCode}</p>
           </header>
 
           {activeTab === 'notes' && (
-            <div className="space-y-8 animate-in fade-in duration-500">
-              <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8">
+            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+              <div className="glass-card p-8">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold">Write Meeting Notes</h3>
-                  {canWriteReport && (
-                    <button 
-                      onClick={async () => {
-                        setLoading(true);
-                        setReport(await compileYFJReport(notes));
-                        setLoading(false);
-                      }}
-                      disabled={loading || !notes}
-                      className="flex items-center gap-2 px-6 py-2 bg-white/10 border border-white/10 rounded-full hover:bg-white/20 disabled:opacity-50 transition"
-                    >
-                      <Sparkles className="size-4 text-gemini-blue" />
-                      {loading ? "AI is thinking..." : "AI Compile"}
-                    </button>
-                  )}
+                  <h3 className="text-xl font-semibold">Note Entry</h3>
+                  <button 
+                    onClick={async () => {
+                      setLoading(true);
+                      const res = await compileYFJReport(notes);
+                      setReport(res);
+                      setLoading(true); // Small delay for effect
+                      setTimeout(() => setLoading(false), 500);
+                    }}
+                    className="gemini-button !py-2 !px-5 text-sm"
+                    disabled={loading}
+                  >
+                    <Sparkles className="size-4" />
+                    {loading ? "Compiling..." : "Generate Report"}
+                  </button>
                 </div>
                 <textarea 
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Type notes or attendance list here... (e.g. John: Present, Mary: Absent)"
-                  className="w-full h-64 bg-transparent border-none outline-none text-lg text-gray-300 resize-none placeholder:text-gray-700"
+                  className="w-full h-64 bg-transparent border-none outline-none text-gray-300 resize-none text-lg"
+                  placeholder="Paste attendance and notes here..."
                 />
               </div>
-
               <ReportDisplay content={report} />
             </div>
           )}
 
           {activeTab === 'stats' && (
-             <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 h-[400px] flex items-center justify-center">
-                <p className="text-gray-500">Attendance Graph coming soon...</p>
-             </div>
-          )}
-
-          {activeTab === 'admin' && (
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8">
-              <h3 className="text-xl font-semibold mb-6">Notification Center</h3>
-              <p className="text-gray-500 italic text-sm">Reviewing pending account requests...</p>
-              {/* Approval List Component would go here */}
+            <div className="glass-card p-8 h-[500px]">
+              <h3 className="text-xl font-semibold mb-8">Attendance Trends</h3>
+              <AttendanceChart />
             </div>
           )}
-
         </div>
       </main>
     </div>
   );
 }
 
+// Sub-component for Sidebar Buttons
 function NavButton({ icon, label, active, onClick }) {
   return (
     <button 
       onClick={onClick}
-      className={`w-full p-4 flex items-center gap-4 rounded-2xl transition-all duration-300 ${
+      className={`w-full p-4 flex items-center gap-4 rounded-2xl transition-all ${
         active 
-        ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white border border-white/10' 
+        ? 'bg-white/10 text-white border border-white/10' 
         : 'text-gray-500 hover:text-white hover:bg-white/5'
       }`}
     >
-      {React.cloneElement(icon, { size: 24 })}
+      {icon}
       <span className="hidden lg:block font-semibold text-sm">{label}</span>
-      {active && <ChevronRight className="ml-auto size-4 text-gemini-purple hidden lg:block" />}
     </button>
   );
 }
