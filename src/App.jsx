@@ -10,9 +10,23 @@ import ReportsPanel from './components/ReportsPanel';
 import {
   FileText, CalendarDays, LayoutGrid, Megaphone,
   Sparkles, LogOut, BookOpen, ChevronRight, ChevronLeft,
-  Clock, CheckCircle, User
+  Clock, CheckCircle, User, Globe, Settings, X, MapPin
 } from 'lucide-react';
 import './assets/index.css';
+
+function useProfile(uid) {
+  const KEY = uid ? `yfj_profile_${uid}` : null;
+  const [profile, setProfileState] = useState(() => {
+    if (!KEY) return { territory: '', region: 'North America' };
+    try { return { region: 'North America', ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { territory: '', region: 'North America' }; }
+  });
+  const saveProfile = (updates) => {
+    const next = { ...profile, ...updates, region: 'North America' };
+    setProfileState(next);
+    if (KEY) localStorage.setItem(KEY, JSON.stringify(next));
+  };
+  return [profile, saveProfile];
+}
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard',       mobileLabel: 'Home',    icon: <LayoutGrid size={20} />,  iconSm: <LayoutGrid size={18} />,  color: 'linear-gradient(135deg,#4285f4,#9b72f3)' },
@@ -36,7 +50,9 @@ function useIsMobile() {
 export default function App() {
   const { currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showProfile, setShowProfile] = useState(false);
   const isMobile = useIsMobile();
+  const [profile, saveProfile] = useProfile(currentUser?.uid);
 
   if (!currentUser) return <AuthPortal />;
 
@@ -45,6 +61,7 @@ export default function App() {
 
   const navItem = NAV_ITEMS.find(n => n.id === activeTab);
   const isSubPage = isMobile && activeTab !== 'dashboard';
+  const needsProfile = !profile.territory;
 
   const handleTabClick = (id) => setActiveTab(id);
   const handleBack = () => setActiveTab('dashboard');
@@ -98,16 +115,31 @@ export default function App() {
         </nav>
 
         <div className="px-4 py-5 border-t border-white/[0.05]">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0"
               style={{ background: 'linear-gradient(135deg, #4285f4, #9b72f3)', color: 'white' }}>
               {initials}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white truncate">{currentUser.fullName || 'Member'}</p>
-              {currentUser.role && <span className="badge badge-purple text-[9px]">{currentUser.role}</span>}
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                {currentUser.role && <span className="badge badge-purple text-[9px]">{currentUser.role}</span>}
+                {profile.territory && <span className="badge badge-blue text-[9px]">{profile.territory}</span>}
+              </div>
             </div>
+            <button onClick={() => setShowProfile(true)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:bg-white/10"
+              title="Edit Profile" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <Settings size={13} />
+            </button>
           </div>
+          {!profile.territory && (
+            <button onClick={() => setShowProfile(true)}
+              className="w-full mb-2 py-1.5 px-3 rounded-xl text-left text-[11px] font-bold flex items-center gap-2"
+              style={{ background: 'rgba(66,133,244,0.12)', border: '1px solid rgba(66,133,244,0.2)', color: '#4285f4' }}>
+              <Globe size={11} /> Set your territory →
+            </button>
+          )}
           <button onClick={logout} className="btn-secondary w-full text-red-400/70 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10">
             <LogOut size={13} /> Sign Out
           </button>
@@ -168,12 +200,12 @@ export default function App() {
             <p className="text-sm font-black text-white leading-none">{navItem?.mobileLabel || navItem?.label}</p>
           </div>
 
-          {/* Right: User avatar / Sign out */}
+          {/* Right: User avatar → opens profile */}
           <div className="flex items-center gap-2" style={{ minWidth: '72px', justifyContent: 'flex-end' }}>
             <button
-              onClick={logout}
+              onClick={() => setShowProfile(true)}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
-              title="Sign Out"
+              title="Profile"
               style={{ background: 'linear-gradient(135deg, #4285f4, #9b72f3)', color: 'white' }}
             >
               {initials}
@@ -250,6 +282,16 @@ export default function App() {
           </div>
         </nav>
       </div>
+
+      {/* ===== PROFILE MODAL ===== */}
+      {showProfile && (
+        <ProfileModal
+          currentUser={currentUser}
+          profile={profile}
+          saveProfile={saveProfile}
+          onClose={() => setShowProfile(false)}
+        />
+      )}
     </div>
   );
 }
@@ -444,6 +486,75 @@ function TraditionsCard({ isMobile }) {
       <a href="/traditions.txt" target="_blank" rel="noopener noreferrer" className="mt-4 text-[10px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors">
         <BookOpen size={10} /> Full Traditions Document
       </a>
+    </div>
+  );
+}
+
+/* ===== PROFILE MODAL ===== */
+function ProfileModal({ currentUser, profile, saveProfile, onClose }) {
+  const [territory, setTerritory] = useState(profile.territory || '');
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    saveProfile({ territory });
+    setSaved(true);
+    setTimeout(() => { setSaved(false); onClose(); }, 1000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-5"
+      style={{ background: 'rgba(4,8,15,0.88)', backdropFilter: 'blur(20px)' }}>
+      <div className="section-card p-7 w-full max-w-sm animate-slide-up">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#4285f4' }}>My Profile</p>
+            <h3 className="text-lg font-black text-white">Territory & Region</h3>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white/05 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* User info (read-only) */}
+        <div className="p-4 rounded-xl mb-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <p className="text-sm font-black text-white mb-0.5">{currentUser?.fullName || currentUser?.email}</p>
+          {currentUser?.role && (
+            <span className="text-[10px] font-black rounded px-2 py-0.5" style={{ background: 'rgba(155,114,243,0.2)', color: '#9b72f3' }}>{currentUser.role}</span>
+          )}
+        </div>
+
+        {/* Territory selector */}
+        <div className="mb-4">
+          <label className="block text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#0dbfcf' }}>Territory</label>
+          <div className="grid grid-cols-2 gap-3">
+            {['USA', 'Canada'].map(t => (
+              <button key={t} onClick={() => setTerritory(t)}
+                className="p-4 rounded-xl text-center font-black text-sm transition-all"
+                style={territory === t
+                  ? { background: 'linear-gradient(135deg,#0dbfcf,#4285f4)', color: 'white', boxShadow: '0 4px 20px rgba(13,191,207,0.35)' }
+                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }
+                }>
+                <Globe size={18} className="mx-auto mb-1.5" />
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Region (auto) */}
+        <div className="mb-6">
+          <label className="block text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#9b72f3' }}>Region</label>
+          <div className="p-3 rounded-xl flex items-center gap-2" style={{ background: 'rgba(155,114,243,0.08)', border: '1px solid rgba(155,114,243,0.15)' }}>
+            <MapPin size={13} style={{ color: '#9b72f3' }} />
+            <span className="text-sm font-bold text-white">North America</span>
+            <span className="ml-auto text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>auto-assigned</span>
+          </div>
+        </div>
+
+        <button onClick={handleSave} disabled={!territory} className="btn-primary w-full">
+          {saved ? <><span style={{ color: '#34a853' }}>✓</span> Saved!</> : <><Globe size={14} /> Save Profile</>}
+        </button>
+      </div>
     </div>
   );
 }
