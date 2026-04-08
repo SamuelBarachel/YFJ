@@ -7,10 +7,13 @@ import Groq from "groq-sdk";
 const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 const modelVersion = import.meta.env.VITE_GROQ_VERSION || "llama3-8b-8192";
 
-const groq = new Groq({ 
-  apiKey: apiKey,
-  dangerouslyAllowBrowser: true 
-});
+let groq = null;
+if (apiKey) {
+  groq = new Groq({ 
+    apiKey: apiKey,
+    dangerouslyAllowBrowser: true 
+  });
+}
 
 /**
  * Compiles meeting notes into a professional report.
