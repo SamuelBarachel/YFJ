@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gemini-dark text-white antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  /* High-End Glass Panel */
+  .glass-panel {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[2rem] shadow-2xl;
+  }
+
+  /* Gemini Text Gradient */
+  .text-gradient {
+    @apply bg-gemini-gradient bg-clip-text text-transparent;
+  }
+
+  /* Smooth Input Fields */
+  .gemini-input {
+    @apply w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white 
+           placeholder:text-gray-600 focus:border-gemini-blue focus:ring-1 
+           focus:ring-gemini-blue outline-none transition-all duration-300;
+  }
+
+  /* High-End Button */
+  .gemini-button {
+    @apply py-4 px-6 bg-gemini-gradient rounded-2xl font-bold text-white 
+           hover:opacity-90 transition-all transform active:scale-[0.98] 
+           shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2;
+  }
+}
+
+/* Custom Scrollbar for the AI Reports */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9b72f3;
+}

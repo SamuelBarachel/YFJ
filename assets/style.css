@@ -1,0 +1,29 @@
+:root {
+  --gemini-blue: #4285f4;
+  --gemini-purple: #9b72f3;
+  --gemini-coral: #d96570;
+  --bg-dark: #0a0a0c;
+}
+
+/* The High-End Animated Background */
+.gemini-bg {
+  background: radial-gradient(circle at 0% 0%, rgba(66, 133, 244, 0.15) 0%, transparent 40%),
+              radial-gradient(circle at 100% 100%, rgba(155, 114, 243, 0.15) 0%, transparent 40%),
+              var(--bg-dark);
+  min-height: 100vh;
+}
+
+/* Glassmorphism Card */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+}
+
+/* Text Gradient for Headings */
+.text-gemini {
+  background: linear-gradient(to right, var(--gemini-blue), var(--gemini-purple), var(--gemini-coral));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
