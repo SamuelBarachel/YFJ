@@ -458,10 +458,16 @@ function UpcomingMeetings({ setActiveTab, isMobile }) {
 
 function TraditionsCard({ isMobile }) {
   const traditions = [
-    { JRM Youth traditions are instructions and guidelines expected from all the boys and girls(in the flesh), who believe in the doctrine of Christ.', color: '#4285f4' },
-    { text: 'The ministers of the gospel or the senior stewards responsible for the youth department ordain these traditions', color: '#9b72f3' },
-    
-  ];
+  { 
+    text: 'JRM Youth traditions are instructions and guidelines expected from all the boys and girls(in the flesh), who believe in the doctrine of Christ.', 
+    color: '#4285f4' 
+  },
+  { 
+    text: 'The ministers of the gospel or the senior stewards responsible for the youth department ordain these traditions', 
+    color: '#9b72f3' 
+  },
+];
+  
   return (
     <div className="section-card p-5 md:p-6">
       <div className="flex items-center gap-3 mb-4">
