@@ -1,6 +1,6 @@
 import Groq from "groq-sdk";
 
-const _apiKey = import.meta.env.VITE_GROQ_KEY;
+const _apiKey = import.meta.env.VITE_GROQ_API_KEY;
 const groq = _apiKey ? new Groq({ apiKey: _apiKey, dangerouslyAllowBrowser: true }) : null;
 
 export const generateMeetingReport = async (notes) => {
