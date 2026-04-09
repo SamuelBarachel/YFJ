@@ -8,13 +8,14 @@ import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc } from 'fir
 import NotesPanel from './components/NotesPanel';
 import WeekAgenda from './components/WeekAgenda';
 import CalendarRoster from './components/CalendarRoster';
+import PeoplePanel from './components/PeoplePanel';
 import AnnouncementsPanel from './components/AnnouncementsPanel';
 import ReportsPanel from './components/ReportsPanel';
 import GreetingsToast from './components/GreetingsToast';
 import {
   FileText, CalendarDays, LayoutGrid, Megaphone,
   Sparkles, LogOut, BookOpen, ChevronRight, ChevronLeft,
-  Clock, CheckCircle, User, Globe, Settings, X, MapPin, Bell, BellOff, Eye, EyeOff
+  Clock, CheckCircle, User, Users, Globe, Settings, X, MapPin, Bell, BellOff, Eye, EyeOff
 } from 'lucide-react';
 import { requestNotificationPermission, scheduleNotification, playReminderChime } from './utils/notifications';
 import './assets/index.css';
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { id: 'calendar',      label: 'Calendar & Roster', mobileLabel: 'Roster', icon: <BookOpen size={20} />,     iconSm: <BookOpen size={18} />,     color: 'linear-gradient(135deg,#0dbfcf,#4285f4)' },
   { id: 'reports',       label: 'Cub AI Reports',    mobileLabel: 'Cub',    icon: <Sparkles size={20} />,     iconSm: <Sparkles size={18} />,     color: 'linear-gradient(135deg,#fbbc04,#d96570)' },
   { id: 'announcements', label: 'Announcements',     mobileLabel: 'News',   icon: <Megaphone size={20} />,    iconSm: <Megaphone size={18} />,    color: 'linear-gradient(135deg,#34a853,#0dbfcf)' },
+  { id: 'people',        label: 'People',            mobileLabel: 'People', icon: <Users size={20} />,        iconSm: <Users size={18} />,        color: 'linear-gradient(135deg,#4285f4,#34a853)' },
 ];
 
 function useIsMobile() {
@@ -230,6 +232,7 @@ export default function App() {
               {activeTab === 'calendar'       && <CalendarRoster />}
               {activeTab === 'reports'        && <ReportsPanel />}
               {activeTab === 'announcements'  && <AnnouncementsPanel />}
+              {activeTab === 'people'         && <PeoplePanel />}
             </div>
           </div>
         </main>
