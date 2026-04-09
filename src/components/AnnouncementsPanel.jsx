@@ -15,7 +15,7 @@ const CATEGORY_COLORS = {
   'Leadership': 'badge-yellow',
 };
 
-// 1. MOVE THE MODAL OUTSIDE THE MAIN COMPONENT
+// --- MODAL COMPONENT (Defined outside to prevent re-render focus loss) ---
 const AnnouncementModal = ({ 
   form, 
   setForm, 
@@ -107,6 +107,7 @@ const AnnouncementModal = ({
                   );
                 })}
               </div>
+              <p className="text-[9px] text-white/55 mt-1">Selected roles will receive a sound notification.</p>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -121,6 +122,7 @@ const AnnouncementModal = ({
   );
 };
 
+// --- MAIN PANEL COMPONENT ---
 export default function AnnouncementsPanel() {
   const { currentUser } = useAuth();
   const { showDone } = useToast();
@@ -141,17 +143,37 @@ export default function AnnouncementsPanel() {
 
   const add = async () => {
     if (!form.title.trim()) return;
-    await addDoc(collection(db, 'announcements'), {
+
+    // 1. Firebase Save
+    const announcementData = {
       ...form,
       author: currentUser?.fullName || currentUser?.email || 'System',
       role: currentUser?.role || '',
       authorUid: currentUser?.uid || '',
       createdAt: serverTimestamp(),
       createdAtISO: new Date().toISOString(),
-    });
+    };
+
+    await addDoc(collection(db, 'announcements'), announcementData);
+
+    // 2. Global Broadcast (Restore Global Notification)
+    try {
+      await fetch('/api/send-broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Announcement: ${form.title}`,
+          body: form.content.slice(0, 100) + (form.content.length > 100 ? '...' : ''),
+          roles: form.notifyRoles
+        })
+      });
+    } catch (err) {
+      console.warn('Broadcast failed:', err);
+    }
+
     setForm({ title: '', content: '', category: 'General', pinned: false, notifyRoles: ['All'] });
     setShowForm(false);
-    showDone('Announcement posted!');
+    showDone('Announcement posted and notifications sent!');
   };
 
   const remove = async (id) => {
@@ -179,6 +201,7 @@ export default function AnnouncementsPanel() {
   };
 
   const sorted = [...announcements].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  
   const formatDate = (iso) => {
     if (!iso) return '';
     const d = iso?.toDate ? iso.toDate() : new Date(iso);
@@ -205,7 +228,6 @@ export default function AnnouncementsPanel() {
         </button>
       </div>
 
-      {/* 2. RENDER THE EXTERNAL MODAL COMPONENT */}
       {showForm && (
         <AnnouncementModal 
           form={form} 
@@ -217,7 +239,7 @@ export default function AnnouncementsPanel() {
         />
       )}
 
-      {/* Ticker and List Logic remain same below */}
+      {/* Ticker */}
       {announcements.length > 0 && (
         <div className="mb-8 glass-panel rounded-2xl overflow-hidden">
           <div className="flex items-center">
