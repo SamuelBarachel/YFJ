@@ -596,7 +596,13 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
     setNotifStatus('requesting');
     const result = await requestNotificationPermission();
     setNotifPermission(result);
+    
     if (result === 'granted') {
+      // --- NEW ADDITION ---
+      // This gets the unique device 'address' and sends it to your server
+      await subscribeUserToPush(); 
+      // --------------------
+
       await updateUserData(currentUser.uid, { notificationsEnabled: true });
       setNotifStatus('enabled');
       showDone('Notifications enabled!');
