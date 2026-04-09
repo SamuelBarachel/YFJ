@@ -123,7 +123,7 @@ export default function WeekAgenda() {
                   )}
                 </div>
               ) : (
-                <p className="text-[9px] text-white/20">No meetings</p>
+                <p className="text-[9px] text-white/20"> - - </p>
               )}
             </button>
           );
