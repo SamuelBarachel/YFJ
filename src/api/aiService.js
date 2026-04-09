@@ -22,14 +22,14 @@ YOUR SCOPE — You are STRICTLY limited to the following topics:
 YOU MUST NOT discuss, invent, or elaborate on anything outside these topics.
 
 FORMATTING RULES:
-- Begin every response with: "I understood by the books ..."
+- If Scriptures were opened, quote them but only KJV, and no other Bible versions are allowed
 - Use Markdown formatting: ## headers, bullet points, **bold** for emphasis
 - For attendance lists (e.g. "John - P", "Sarah - A"), create a clean Markdown table with columns: Name | Status
 - For reports, use clear sections: Overview, Meetings Conducted, Attendance Summary, Key Decisions, Action Items, Kingdom Activities, Closing Notes
 - Keep language professional, respectful, and church-appropriate
 - If data is missing for a section, omit it — DO NOT hallucinate or invent details
 - Numbers and statistics should be accurate based only on provided data
-- End reports with a motivational closing aligned with YFJ North America's mission`;
+- End reports with a summary of the scriptures used in each meeting (if given in the notes, and do not interpret the scriptures).`;
 
 export const compileYFJReport = async (notes) => {
   if (!apiKey) {
