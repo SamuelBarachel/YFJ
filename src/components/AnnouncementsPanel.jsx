@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // Add this import
 import { Megaphone, Plus, Pin, Trash2, X, Calendar, User, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -85,6 +86,89 @@ export default function AnnouncementsPanel() {
     return privileged.includes(currentUser.role);
   };
 
+  // --- MODAL COMPONENT ---
+  const AnnouncementModal = () => (
+    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-[#04080f]/90 backdrop-blur-xl flex justify-center p-4 sm:p-10">
+      <div className="min-h-full w-full flex items-center justify-center">
+        <div 
+          className="section-card relative w-full max-w-lg p-8 animate-slide-up rounded-2xl shadow-2xl"
+          style={{ height: 'auto', display: 'block' }}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-black text-white">Post Announcement</h3>
+            <button onClick={() => setShowForm(false)} className="text-white/30 hover:text-white transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Title *</label>
+              <input className="yfj-input" placeholder="Announcement title..." value={form.title}
+                onChange={e => setForm({ ...form, title: e.target.value })} />
+            </div>
+            
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Details</label>
+              <textarea className="yfj-textarea" rows={4} placeholder="Full details of the announcement..."
+                value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Category</label>
+                <select className="yfj-input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                  {Object.keys(CATEGORY_COLORS).map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div
+                    onClick={() => setForm({ ...form, pinned: !form.pinned })}
+                    className={`w-10 h-6 rounded-full transition-all relative ${form.pinned ? 'bg-purple-500' : 'bg-white/10'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${form.pinned ? 'left-5' : 'left-1'}`} />
+                  </div>
+                  <span className="text-xs font-bold text-white/80">Pin to top</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block flex items-center gap-1.5">
+                <Bell size={10} /> Notify (sound alert for)
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {NOTIFY_OPTIONS.map(role => {
+                  const active = form.notifyRoles.includes(role);
+                  return (
+                    <button
+                      type="button"
+                      key={role}
+                      onClick={() => toggleNotifyRole(role)}
+                      className="text-[10px] font-black px-3 py-1.5 rounded-xl transition-all"
+                      style={active
+                        ? { background: 'linear-gradient(135deg,#4285f4,#9b72f3)', color: 'white' }
+                        : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.72)' }
+                      }
+                    >
+                      {role}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button onClick={add} className="btn-primary flex-1">Post Announcement</button>
+              <button onClick={() => setShowForm(false)} className="btn-secondary">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="animate-slide-up">
       <div className="flex items-center justify-between mb-8">
@@ -98,90 +182,8 @@ export default function AnnouncementsPanel() {
         </button>
       </div>
 
-      {/* Announcement form modal - BREAKOUT FIX */}
-      {showForm && (
-        <div 
-          className="fixed inset-0 z-[9999] overflow-y-auto bg-[#04080f]/90 backdrop-blur-xl"
-        >
-          <div className="flex min-h-full w-full items-center justify-center p-4 sm:p-10">
-            <div 
-              className="section-card relative w-full max-w-lg p-8 animate-slide-up rounded-2xl shadow-2xl"
-              style={{ maxHeight: 'none', height: 'auto', display: 'block' }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-black text-white">Post Announcement</h3>
-                <button onClick={() => setShowForm(false)} className="text-white/30 hover:text-white transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Title *</label>
-                  <input className="yfj-input" placeholder="Announcement title..." value={form.title}
-                    onChange={e => setForm({ ...form, title: e.target.value })} />
-                </div>
-                
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Details</label>
-                  <textarea className="yfj-textarea" rows={4} placeholder="Full details of the announcement..."
-                    value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Category</label>
-                    <select className="yfj-input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                      {Object.keys(CATEGORY_COLORS).map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex items-end">
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <div
-                        onClick={() => setForm({ ...form, pinned: !form.pinned })}
-                        className={`w-10 h-6 rounded-full transition-all relative ${form.pinned ? 'bg-purple-500' : 'bg-white/10'}`}
-                      >
-                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${form.pinned ? 'left-5' : 'left-1'}`} />
-                      </div>
-                      <span className="text-xs font-bold text-white/80">Pin to top</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block flex items-center gap-1.5">
-                    <Bell size={10} /> Notify (sound alert for)
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {NOTIFY_OPTIONS.map(role => {
-                      const active = form.notifyRoles.includes(role);
-                      return (
-                        <button
-                          type="button"
-                          key={role}
-                          onClick={() => toggleNotifyRole(role)}
-                          className="text-[10px] font-black px-3 py-1.5 rounded-xl transition-all"
-                          style={active
-                            ? { background: 'linear-gradient(135deg,#4285f4,#9b72f3)', color: 'white' }
-                            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.72)' }
-                          }
-                        >
-                          {role}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button onClick={add} className="btn-primary flex-1">Post Announcement</button>
-                  <button onClick={() => setShowForm(false)} className="btn-secondary">Cancel</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* PORTAL RENDERING */}
+      {showForm && createPortal(<AnnouncementModal />, document.body)}
 
       {/* Ticker */}
       {announcements.length > 0 && (
