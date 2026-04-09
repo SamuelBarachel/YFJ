@@ -96,7 +96,14 @@ export default function WeekAgenda() {
           const dayMeetings = getMeetingsForDay(day);
           const isToday = day.getTime() === today.getTime();
           const isPast = day < today;
+          const isFuture = day > today;
           const isSelected = selectedDay === i;
+
+          // Color logic
+          let dateColor = 'text-white/80';
+          if (isToday) dateColor = 'text-green-500 underline';
+          else if (isPast) dateColor = 'text-red-500';
+          else if (isFuture) dateColor = 'text-yellow-500';
 
           return (
             <button
@@ -108,7 +115,7 @@ export default function WeekAgenda() {
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/30">{DAY_SHORT[i]}</span>
                 {isToday && <span className="badge badge-purple" style={{fontSize:'8px'}}>Today</span>}
               </div>
-              <div className={`text-2xl font-black mb-2 ${isToday ? 'gemini-gradient-text' : 'text-white/80'}`}>
+              <div className={`text-2xl font-black mb-2 ${dateColor}`}>
                 {day.getDate()}
               </div>
               {dayMeetings.length > 0 ? (
