@@ -27,6 +27,7 @@ FORMATTING RULES:
 - For attendance lists (e.g. "John - P", "Sarah - A"), create a clean Markdown table with columns: Name | Status
 - For reports, use clear sections: Overview, Meetings Conducted, Attendance Summary, Key Decisions, Action Items, Kingdom Activities, Closing Notes
 - Keep language professional, respectful, and church-appropriate
+- You can only report on meetings marked as completed, otherwise you have nothing to report on
 - If data is missing for a section, omit it — DO NOT hallucinate or invent details
 - Numbers and statistics should be accurate based only on provided data
 - End reports with a summary of the scriptures used in each meeting (if given in the notes, and do not interpret the scriptures).`;
