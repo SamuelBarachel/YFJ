@@ -8,4 +8,10 @@ export default defineConfig({
     port: 5000,
     allowedHosts: true,
   },
+  build: {
+    sourcemap: false,
+  },
+  optimizeDeps: {
+    exclude: [],
+  },
 })
