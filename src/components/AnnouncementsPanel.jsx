@@ -98,15 +98,18 @@ export default function AnnouncementsPanel() {
         </button>
       </div>
 
-      {/* Announcement form modal - PATCHED POSITIONING */}
+      {/* Announcement form modal - Fixed for Laptop & Mobile */}
       {showForm && (
         <div 
-          className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-6" 
-          style={{ background: 'rgba(4,8,15,0.85)', backdropFilter: 'blur(12px)' }}
+          className="fixed inset-0 z-50 flex justify-center overflow-y-auto p-4 sm:p-8" 
+          style={{ background: 'rgba(4,8,15,0.92)', backdropFilter: 'blur(16px)' }}
         >
           <div 
-            className="section-card p-8 w-full max-w-lg animate-slide-up overflow-y-auto rounded-t-3xl sm:rounded-2xl" 
-            style={{ maxHeight: '85vh', marginBottom: '0' }}
+            className="section-card p-8 w-full max-w-lg animate-slide-up h-fit my-auto sm:my-8 rounded-2xl" 
+            style={{ 
+              maxHeight: 'none', // Allow it to grow, parent handles scroll
+              position: 'relative'
+            }}
           >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-black text-white">Post Announcement</h3>
