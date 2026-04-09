@@ -135,7 +135,7 @@ export default function NotesPanel() {
           <div className="p-3 border-b" style={{borderColor: 'rgba(255,255,255,0.05)'}}>
             <div className="relative">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{color: 'rgba(255,255,255,0.25)'}} />
-              <input className="yfj-input pl-9 text-sm" placeholder="Search notes..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input className="yfj-input pl-9 text-sm" placeholder="  Search notes..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
 
