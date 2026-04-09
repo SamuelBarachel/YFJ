@@ -98,21 +98,15 @@ export default function AnnouncementsPanel() {
         </button>
       </div>
 
-      {/* Announcement form modal - Full Screen Usage Fix */}
+      {/* Announcement form modal - BREAKOUT FIX */}
       {showForm && (
         <div 
-          className="fixed inset-0 z-50 overflow-y-auto" 
-          style={{ 
-            background: 'rgba(4,8,15,0.85)', 
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)' 
-          }}
+          className="fixed inset-0 z-[9999] overflow-y-auto bg-[#04080f]/90 backdrop-blur-xl"
         >
-          {/* Wrapper that allows content to dictate height and utilize the full screen */}
-          <div className="min-h-screen w-full flex flex-col items-center p-4 sm:p-10">
+          <div className="flex min-h-full w-full items-center justify-center p-4 sm:p-10">
             <div 
-              className="section-card p-8 w-full max-w-lg animate-slide-up rounded-2xl my-auto" 
-              style={{ position: 'relative' }}
+              className="section-card relative w-full max-w-lg p-8 animate-slide-up rounded-2xl shadow-2xl"
+              style={{ maxHeight: 'none', height: 'auto', display: 'block' }}
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-black text-white">Post Announcement</h3>
