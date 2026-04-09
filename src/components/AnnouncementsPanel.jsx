@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, Plus, Pin, Trash2, X, Calendar, User, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { db } from '../firebase/config';
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { ALL_ROLES } from '../context/AuthContext';
@@ -17,6 +18,7 @@ const NOTIFY_OPTIONS = ['All', ...ALL_ROLES];
 
 export default function AnnouncementsPanel() {
   const { currentUser } = useAuth();
+  const { showDone } = useToast();
   const [announcements, setAnnouncements] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -42,14 +44,17 @@ export default function AnnouncementsPanel() {
     });
     setForm({ title: '', content: '', category: 'General', pinned: false, notifyRoles: ['All'] });
     setShowForm(false);
+    showDone('Announcement posted!');
   };
 
   const remove = async (id) => {
     await deleteDoc(doc(db, 'announcements', id));
+    showDone('Deleted.', 'danger');
   };
 
   const togglePin = async (id, current) => {
     await updateDoc(doc(db, 'announcements', id), { pinned: !current });
+    showDone(current ? 'Unpinned.' : 'Pinned!');
   };
 
   const toggleNotifyRole = (role) => {
@@ -86,7 +91,7 @@ export default function AnnouncementsPanel() {
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] text-blue-400 mb-2">Communication Board</p>
           <h2 className="text-3xl font-black text-white tracking-tight">Announcements</h2>
-          <p className="text-sm text-white/30 mt-1 italic">"I understood by the books..."</p>
+          <p className="text-sm text-white/60 mt-1 italic">"I understood by the books..."</p>
         </div>
         <button onClick={() => setShowForm(true)} className="btn-primary">
           <Plus size={14} /> Publish
@@ -105,18 +110,18 @@ export default function AnnouncementsPanel() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Title *</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Title *</label>
                 <input className="yfj-input" placeholder="Announcement title..." value={form.title}
                   onChange={e => setForm({ ...form, title: e.target.value })} />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Details</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Details</label>
                 <textarea className="yfj-textarea" rows={4} placeholder="Full details of the announcement..."
                   value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block">Category</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block">Category</label>
                   <select className="yfj-input" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
                     {Object.keys(CATEGORY_COLORS).map(c => <option key={c}>{c}</option>)}
                   </select>
@@ -129,14 +134,14 @@ export default function AnnouncementsPanel() {
                     >
                       <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${form.pinned ? 'left-5' : 'left-1'}`} />
                     </div>
-                    <span className="text-xs font-bold text-white/60">Pin to top</span>
+                    <span className="text-xs font-bold text-white/80">Pin to top</span>
                   </label>
                 </div>
               </div>
 
               {/* Notification targeting */}
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2 block flex items-center gap-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2 block flex items-center gap-1.5">
                   <Bell size={10} /> Notify (sound alert for)
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -150,7 +155,7 @@ export default function AnnouncementsPanel() {
                         className="text-[10px] font-black px-3 py-1.5 rounded-xl transition-all"
                         style={active
                           ? { background: 'linear-gradient(135deg,#4285f4,#9b72f3)', color: 'white' }
-                          : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }
+                          : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.72)' }
                         }
                       >
                         {role}
@@ -158,7 +163,7 @@ export default function AnnouncementsPanel() {
                     );
                   })}
                 </div>
-                <p className="text-[9px] text-white/25 mt-1">
+                <p className="text-[9px] text-white/55 mt-1">
                   Selected roles will receive a sound notification and pop-up alert.
                 </p>
               </div>
@@ -212,7 +217,7 @@ export default function AnnouncementsPanel() {
                     <h3 className="text-base font-black text-white">{a.title}</h3>
                   </div>
                   {a.content && <p className="text-sm text-white/60 leading-relaxed mb-3">{a.content}</p>}
-                  <div className="flex items-center gap-4 text-[11px] text-white/30 flex-wrap">
+                  <div className="flex items-center gap-4 text-[11px] text-white/60 flex-wrap">
                     <span className="flex items-center gap-1.5"><User size={10} /> {a.author} {a.role && `· ${a.role}`}</span>
                     <span className="flex items-center gap-1.5"><Calendar size={10} /> {formatDate(a.createdAt || a.createdAtISO)}</span>
                     {a.notifyRoles && a.notifyRoles.length > 0 && (
@@ -224,12 +229,12 @@ export default function AnnouncementsPanel() {
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <button onClick={() => togglePin(a.id, a.pinned)} title={a.pinned ? 'Unpin' : 'Pin'}
-                    className="p-2 rounded-lg bg-white/5 hover:bg-yellow-500/15 hover:text-yellow-400 text-white/30 transition-all">
+                    className="p-2 rounded-lg bg-white/5 hover:bg-yellow-500/15 hover:text-yellow-400 text-white/60 transition-all">
                     <Pin size={14} />
                   </button>
                   {canDelete(a) && (
                     <button onClick={() => remove(a.id)}
-                      className="p-2 rounded-lg bg-white/5 hover:bg-red-500/15 hover:text-red-400 text-white/30 transition-all">
+                      className="p-2 rounded-lg bg-white/5 hover:bg-red-500/15 hover:text-red-400 text-white/60 transition-all">
                       <Trash2 size={14} />
                     </button>
                   )}

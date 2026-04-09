@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Save, Search, Trash2, Clock, User, Plus, BookOpen, PenLine } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { db } from '../firebase/config';
 import {
   collection, query, orderBy, onSnapshot,
@@ -29,6 +30,7 @@ const EMPTY = { title: '', summary: '', date: todayISO(), details: '' };
 
 export default function NotesPanel() {
   const { currentUser } = useAuth();
+  const { showDone } = useToast();
   const [notes, setNotes] = useState([]);
   const [active, setActive] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -106,6 +108,7 @@ export default function NotesPanel() {
       setIsNew(false);
     }
     setSaved(true);
+    showDone('Signed & saved!');
     setTimeout(() => setSaved(false), 2500);
   };
 
@@ -113,6 +116,7 @@ export default function NotesPanel() {
     e?.stopPropagation();
     await deleteDoc(doc(db, 'notes', id));
     if (active === id) startNew();
+    showDone('Note deleted.', 'danger');
   };
 
   const currentNote = notes.find(n => n.id === active);
@@ -123,7 +127,7 @@ export default function NotesPanel() {
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] mb-1.5" style={{ color: '#9b72f3' }}>Secretary's Workspace</p>
           <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Notes & Records</h2>
-          <p className="text-xs md:text-sm italic mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>"I understood by the books..."</p>
+          <p className="text-xs md:text-sm italic mt-1" style={{ color: 'rgba(255,255,255,0.70)' }}>"I understood by the books..."</p>
         </div>
         <button onClick={startNew} className="btn-primary flex-shrink-0">
           <Plus size={14} /> New Note
@@ -145,7 +149,7 @@ export default function NotesPanel() {
             {filtered.length === 0 && (
               <div className="p-8 text-center">
                 <BookOpen size={28} className="mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.15)' }} />
-                <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>No notes yet.</p>
+                <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>No notes yet.</p>
                 <button onClick={startNew} className="text-xs mt-2" style={{ color: '#9b72f3' }}>Create the first one →</button>
               </div>
             )}
@@ -171,11 +175,11 @@ export default function NotesPanel() {
                   </button>
                 </div>
                 {note.summary && (
-                  <p className="text-xs mb-1.5 truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>{note.summary}</p>
+                  <p className="text-xs mb-1.5 truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{note.summary}</p>
                 )}
                 <div className="flex items-center gap-3">
                   {note.date && <span className="text-[10px] font-bold" style={{ color: '#9b72f3' }}>{fmtDate(note.date)}</span>}
-                  <span className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{note.author}</span>
+                  <span className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.62)' }}>{note.author}</span>
                 </div>
               </button>
             ))}
@@ -233,10 +237,10 @@ export default function NotesPanel() {
                       {currentNote.signature.signedRole}
                     </span>
                   )}
-                  <span style={{ color: 'rgba(255,255,255,0.4)' }}> — Signed {fmtDateTime(currentNote.signature.signedAt)}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.70)' }}> — Signed {fmtDateTime(currentNote.signature.signedAt)}</span>
                 </p>
               ) : (
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
                   Will be signed by <span className="font-bold text-white">{currentUser?.fullName || currentUser?.email || 'you'}</span> upon saving.
                 </p>
               )}
@@ -254,14 +258,14 @@ export default function NotesPanel() {
                         {currentNote.signature.signedRole}
                       </span>
                     )}
-                    <span style={{ color: 'rgba(255,255,255,0.4)' }}> — Signed {fmtDateTime(currentNote.signature.signedAt)}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.70)' }}> — Signed {fmtDateTime(currentNote.signature.signedAt)}</span>
                   </p>
                 </div>
               </div>
             )}
 
             <div className="flex items-center justify-between">
-              <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.52)' }}>
                 {form.details.length} chars · {form.details.split(/\s+/).filter(Boolean).length} words
               </p>
               <button onClick={saveNote} disabled={!form.title && !form.details} className="btn-primary">

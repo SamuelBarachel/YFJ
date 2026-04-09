@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, ALL_ROLES } from './context/AuthContext';
+import { ToastProvider, useToast } from './context/ToastContext';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase/config';
 import { db } from './firebase/config';
@@ -46,7 +47,7 @@ export default function App() {
   const seenIdsRef = useRef(new Set());
   const mountTimeRef = useRef(Date.now());
 
-  if (!currentUser) return <AuthPortal />;
+  if (!currentUser) return <ToastProvider><AuthPortal /></ToastProvider>;
 
   const initials = (currentUser.fullName || currentUser.email || 'U')
     .split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -57,6 +58,7 @@ export default function App() {
   const handleBack = () => setActiveTab('dashboard');
 
   return (
+    <ToastProvider>
     <div className="min-h-screen flex" style={{ background: '#04080F' }}>
       <div className="aurora-blob-1" />
       <div className="aurora-blob-2" />
@@ -95,10 +97,10 @@ export default function App() {
             </div>
             <div>
               <h1 className="font-black text-white text-base leading-none tracking-tight">YFJ</h1>
-              <p className="text-[9px] uppercase tracking-[0.25em] text-white/30 font-bold mt-0.5">North America</p>
+              <p className="text-[9px] uppercase tracking-[0.25em] text-white/58 font-bold mt-0.5">North America</p>
             </div>
           </div>
-          <p className="text-[10px] italic text-white/20 mt-3 leading-relaxed">"I understood by the books..."</p>
+          <p className="text-[10px] italic text-white/48 mt-3 leading-relaxed">"I understood by the books..."</p>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
@@ -109,11 +111,11 @@ export default function App() {
               className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
             >
               <div className="nav-icon flex-shrink-0" style={{ background: activeTab === item.id ? item.color : 'rgba(255,255,255,0.06)' }}>
-                <span style={{ color: activeTab === item.id ? 'white' : 'rgba(255,255,255,0.35)' }}>
+                <span style={{ color: activeTab === item.id ? 'white' : 'rgba(255,255,255,0.65)' }}>
                   {item.iconSm}
                 </span>
               </div>
-              <span className={activeTab === item.id ? 'text-white' : 'text-white/35'}>{item.label}</span>
+              <span className={activeTab === item.id ? 'text-white' : 'text-white/65'}>{item.label}</span>
             </button>
           ))}
         </nav>
@@ -133,7 +135,7 @@ export default function App() {
             </div>
             <button onClick={() => setShowProfile(true)}
               className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:bg-white/10"
-              title="Edit Profile" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              title="Edit Profile" style={{ color: 'rgba(255,255,255,0.65)' }}>
               <Settings size={13} />
             </button>
           </div>
@@ -159,12 +161,12 @@ export default function App() {
           style={{ background: 'rgba(4,8,15,0.6)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
         >
           <div className="flex items-center gap-3">
-            <div className="text-white/20 text-sm">/</div>
+            <div className="text-white/52 text-sm">/</div>
             <h2 className="text-sm font-black text-white">{navItem?.label}</h2>
           </div>
           <div className="glass-panel px-4 py-2 rounded-xl flex items-center gap-2">
             <Clock size={12} className="text-purple-400" />
-            <span className="text-xs font-bold text-white/50">
+            <span className="text-xs font-bold text-white/72">
               {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
           </div>
@@ -265,13 +267,13 @@ export default function App() {
                       boxShadow: isActive ? '0 4px 14px rgba(155,114,243,0.35)' : 'none',
                     }}
                   >
-                    <span style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.3)' }}>
+                    <span style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.62)' }}>
                       {item.iconSm}
                     </span>
                   </div>
                   <span
                     className="text-[9px] font-black uppercase tracking-tight leading-none"
-                    style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.3)' }}
+                    style={{ color: isActive ? 'white' : 'rgba(255,255,255,0.62)' }}
                   >
                     {item.mobileLabel}
                   </span>
@@ -290,6 +292,7 @@ export default function App() {
         />
       )}
     </div>
+    </ToastProvider>
   );
 }
 
@@ -423,7 +426,7 @@ function DashboardPanel({ setActiveTab, currentUser, isMobile }) {
             <h1 className={`font-black text-white tracking-tight mb-1 ${isMobile ? 'text-2xl' : 'text-4xl'}`}>
               {firstName ? `Hello, ${firstName}.` : 'Hello.'}
             </h1>
-            <p className="text-white/35 text-xs md:text-sm">
+            <p className="text-white/65 text-xs md:text-sm">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
@@ -440,13 +443,13 @@ function DashboardPanel({ setActiveTab, currentUser, isMobile }) {
               {s.icon}
             </div>
             <div className="text-2xl md:text-3xl font-black text-white mb-0.5">{s.value}</div>
-            <div className="text-[10px] text-white/35 font-bold uppercase tracking-wide">{s.label}</div>
+            <div className="text-[10px] text-white/65 font-bold uppercase tracking-wide">{s.label}</div>
           </div>
         ))}
       </div>
 
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mb-3">Quick Actions</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/58 mb-3">Quick Actions</p>
         <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'}`}>
           {QUICK_ACTIONS.map((a, i) => (
             <button
@@ -461,7 +464,7 @@ function DashboardPanel({ setActiveTab, currentUser, isMobile }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-white truncate">{a.label}</p>
-                  <p className="text-[11px] text-white/35 truncate">{a.desc}</p>
+                  <p className="text-[11px] text-white/65 truncate">{a.desc}</p>
                 </div>
                 {isMobile && <ChevronRight size={16} className="text-white/20 flex-shrink-0" />}
               </div>
@@ -501,7 +504,7 @@ function UpcomingMeetings({ setActiveTab, isMobile }) {
           </div>
           <div>
             <h3 className="text-sm font-black text-white">Upcoming Meetings</h3>
-            <p className="text-[10px] text-white/30">Next sessions</p>
+            <p className="text-[10px] text-white/58">Next sessions</p>
           </div>
         </div>
         <button onClick={() => setActiveTab('calendar')} className="text-[10px] font-bold text-purple-400 flex items-center gap-1">
@@ -510,8 +513,8 @@ function UpcomingMeetings({ setActiveTab, isMobile }) {
       </div>
       {meetings.length === 0 ? (
         <div className="text-center py-6">
-          <CalendarDays size={24} className="mx-auto mb-2 text-white/15" />
-          <p className="text-white/25 text-xs">No upcoming meetings.</p>
+          <CalendarDays size={24} className="mx-auto mb-2 text-white/30" />
+          <p className="text-white/58 text-xs">No upcoming meetings.</p>
           <button onClick={() => setActiveTab('calendar')} className="mt-2 text-xs text-purple-400">Schedule one →</button>
         </div>
       ) : (
@@ -520,11 +523,11 @@ function UpcomingMeetings({ setActiveTab, isMobile }) {
             <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.025] border border-white/[0.05]">
               <div className="flex-shrink-0 text-center w-10">
                 <div className="text-lg font-black text-white leading-none">{m.date ? new Date(m.date + 'T00:00:00').getDate() : '?'}</div>
-                <div className="text-[9px] font-bold text-white/30 uppercase">{m.date ? new Date(m.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' }) : ''}</div>
+                <div className="text-[9px] font-bold text-white/60 uppercase">{m.date ? new Date(m.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' }) : ''}</div>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-white truncate">{m.title}</p>
-                <p className="text-[10px] text-white/35">{m.timeStart || ''}{m.chair ? ` · ${m.chair}` : ''}</p>
+                <p className="text-[10px] text-white/65">{m.timeStart || ''}{m.chair ? ` · ${m.chair}` : ''}</p>
               </div>
             </div>
           ))}
@@ -547,14 +550,14 @@ function TraditionsCard({ isMobile }) {
         </div>
         <div>
           <h3 className="text-sm font-black text-white">Youth Traditions</h3>
-          <p className="text-[10px] text-white/30">By the books</p>
+          <p className="text-[10px] text-white/58">By the books</p>
         </div>
       </div>
       <div className="space-y-2">
         {traditions.slice(0, isMobile ? 3 : 5).map((t, i) => (
           <div key={i} className="flex items-start gap-3 p-2 rounded-xl bg-white/[0.02]">
             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: t.color }} />
-            <p className="text-xs text-white/50 leading-relaxed">{t.text}</p>
+            <p className="text-xs text-white/75 leading-relaxed">{t.text}</p>
           </div>
         ))}
       </div>
@@ -569,6 +572,7 @@ function TraditionsCard({ isMobile }) {
 /* ─── PROFILE MODAL ─── */
 function ProfileModal({ currentUser, onClose, onLogout }) {
   const { updateUserData } = useAuth();
+  const { showDone } = useToast();
   const [territory, setTerritory] = useState(currentUser.territory || '');
   const [saved, setSaved] = useState(false);
   const [notifStatus, setNotifStatus] = useState(
@@ -581,6 +585,7 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
   const handleSave = async () => {
     await updateUserData(currentUser.uid, { territory, region: 'North America' });
     setSaved(true);
+    showDone('Profile saved!');
     setTimeout(() => { setSaved(false); onClose(); }, 1000);
   };
 
@@ -591,6 +596,7 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
     if (result === 'granted') {
       await updateUserData(currentUser.uid, { notificationsEnabled: true });
       setNotifStatus('enabled');
+      showDone('Notifications enabled!');
     } else {
       setNotifStatus('denied');
     }
@@ -599,6 +605,7 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
   const handleDisableNotifications = async () => {
     await updateUserData(currentUser.uid, { notificationsEnabled: false });
     setNotifStatus('idle');
+    showDone('Notifications disabled.');
   };
 
   return (
@@ -610,7 +617,7 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
             <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#4285f4' }}>My Account</p>
             <h3 className="text-lg font-black text-white">Profile & Settings</h3>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white/05 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white/05 transition-colors" style={{ color: 'rgba(255,255,255,0.70)' }}>
             <X size={16} />
           </button>
         </div>
@@ -618,7 +625,7 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
         {/* User info */}
         <div className="p-4 rounded-xl mb-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <p className="text-sm font-black text-white mb-0.5">{currentUser?.fullName || currentUser?.email}</p>
-          <p className="text-xs text-white/40 mb-1">{currentUser?.email}</p>
+          <p className="text-xs text-white/70 mb-1">{currentUser?.email}</p>
           {currentUser?.role && (
             <span className="text-[10px] font-black rounded px-2 py-0.5" style={{ background: 'rgba(155,114,243,0.2)', color: '#9b72f3' }}>{currentUser.role}</span>
           )}
@@ -633,7 +640,7 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
                 className="p-4 rounded-xl text-center font-black text-sm transition-all"
                 style={territory === t
                   ? { background: 'linear-gradient(135deg,#0dbfcf,#4285f4)', color: 'white', boxShadow: '0 4px 20px rgba(13,191,207,0.35)' }
-                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }
+                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.75)' }
                 }>
                 <Globe size={18} className="mx-auto mb-1.5" />
                 {t}
@@ -648,7 +655,7 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
           <div className="p-3 rounded-xl flex items-center gap-2" style={{ background: 'rgba(155,114,243,0.08)', border: '1px solid rgba(155,114,243,0.15)' }}>
             <MapPin size={13} style={{ color: '#9b72f3' }} />
             <span className="text-sm font-bold text-white">North America</span>
-            <span className="ml-auto text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>auto-assigned</span>
+            <span className="ml-auto text-[10px]" style={{ color: 'rgba(255,255,255,0.62)' }}>auto-assigned</span>
           </div>
         </div>
 
@@ -659,19 +666,19 @@ function ProfileModal({ currentUser, onClose, onLogout }) {
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#4285f4' }}>Sound Notifications</p>
           </div>
           {notifPermission === 'unsupported' ? (
-            <p className="text-xs text-white/40">Notifications not supported on this browser.</p>
+            <p className="text-xs text-white/70">Notifications not supported on this browser.</p>
           ) : notifPermission === 'denied' ? (
-            <p className="text-xs text-white/40">Notifications blocked. Please enable them in your browser settings.</p>
+            <p className="text-xs text-white/70">Notifications blocked. Please enable them in your browser settings.</p>
           ) : notifStatus === 'enabled' || (currentUser.notificationsEnabled && notifPermission === 'granted') ? (
             <div>
-              <p className="text-xs text-white/60 mb-2">You'll receive reminders 1 week, 1 day, and 1 hour before meetings.</p>
+              <p className="text-xs text-white/78 mb-2">You'll receive reminders 1 week, 1 day, and 1 hour before meetings.</p>
               <button onClick={handleDisableNotifications} className="btn-secondary text-xs w-full">
                 <BellOff size={12} /> Disable Notifications
               </button>
             </div>
           ) : (
             <div>
-              <p className="text-xs text-white/60 mb-2">Enable to receive meeting reminders and announcement alerts.</p>
+              <p className="text-xs text-white/78 mb-2">Enable to receive meeting reminders and announcement alerts.</p>
               <button onClick={handleEnableNotifications} disabled={notifStatus === 'requesting'} className="btn-primary text-xs w-full">
                 {notifStatus === 'requesting' ? <><div className="spinner !w-3 !h-3" /> Requesting...</> : <><Bell size={12} /> Enable Notifications</>}
               </button>
@@ -742,23 +749,23 @@ function LoginForm({ onSwitch }) {
               </div>
             </div>
             <h1 className="text-2xl font-black text-white tracking-tight leading-tight mb-1">Youth for Jesus</h1>
-            <p className="text-white/35 text-sm font-semibold">North America</p>
-            <p className="text-white/20 text-xs italic mt-3">"I understood by the books..."</p>
+            <p className="text-white/65 text-sm font-semibold">North America</p>
+            <p className="text-white/52 text-xs italic mt-3">"I understood by the books..."</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-2">Email Address</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/65 mb-2">Email Address</label>
               <input type="email" autoComplete="email" className="yfj-input" placeholder="your@email.com"
                 value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-2">Password</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/65 mb-2">Password</label>
               <div className="relative">
                 <input type={showPw ? 'text' : 'password'} autoComplete="current-password" className="yfj-input pr-11"
                   placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
                 <button type="button" onClick={() => setShowPw(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.62)' }}>
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -774,13 +781,13 @@ function LoginForm({ onSwitch }) {
           </form>
 
           <div className="mt-5 text-center">
-            <p className="text-[11px] text-white/35 mb-3">Don't have an account?</p>
+            <p className="text-[11px] text-white/65 mb-3">Don't have an account?</p>
             <button onClick={onSwitch} className="btn-secondary w-full">
               <User size={13} /> Create Account
             </button>
           </div>
 
-          <p className="text-center text-[10px] mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.18)' }}>
+          <p className="text-center text-[10px] mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
             Access restricted to authorized personnel.<br />
             Contact your Territory Coordinator for access.
           </p>
@@ -839,51 +846,51 @@ function RegisterForm({ onSwitch }) {
               </div>
             </div>
             <h1 className="text-xl font-black text-white tracking-tight mb-1">Create Account</h1>
-            <p className="text-white/35 text-sm">Youth for Jesus North America</p>
+            <p className="text-white/65 text-sm">Youth for Jesus North America</p>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-3">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-1.5">Full Name *</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/65 mb-1.5">Full Name *</label>
               <input className="yfj-input" placeholder="Your full name" value={form.fullName}
                 onChange={e => f('fullName', e.target.value)} required />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-1.5">Email Address *</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/65 mb-1.5">Email Address *</label>
               <input type="email" autoComplete="email" className="yfj-input" placeholder="your@email.com"
                 value={form.email} onChange={e => f('email', e.target.value)} required />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-1.5">Password *</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/65 mb-1.5">Password *</label>
               <div className="relative">
                 <input type={showPw ? 'text' : 'password'} className="yfj-input pr-11" placeholder="Min 6 characters"
                   value={form.password} onChange={e => f('password', e.target.value)} required />
                 <button type="button" onClick={() => setShowPw(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.62)' }}>
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-1.5">Confirm Password *</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/65 mb-1.5">Confirm Password *</label>
               <input type="password" className="yfj-input" placeholder="Repeat password"
                 value={form.confirmPassword} onChange={e => f('confirmPassword', e.target.value)} required />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-1.5">Role *</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/65 mb-1.5">Role *</label>
               <select className="yfj-input" value={form.role} onChange={e => f('role', e.target.value)}>
                 {ALL_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-1.5">Territory *</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-white/65 mb-1.5">Territory *</label>
               <div className="grid grid-cols-2 gap-2">
                 {['USA', 'Canada'].map(t => (
                   <button type="button" key={t} onClick={() => f('territory', t)}
                     className="p-3 rounded-xl text-center font-black text-sm transition-all"
                     style={form.territory === t
                       ? { background: 'linear-gradient(135deg,#0dbfcf,#4285f4)', color: 'white' }
-                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }
+                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.75)' }
                     }>
                     {t}
                   </button>
@@ -903,7 +910,7 @@ function RegisterForm({ onSwitch }) {
           </form>
 
           <div className="mt-4 text-center">
-            <p className="text-[11px] text-white/35 mb-2">Already have an account?</p>
+            <p className="text-[11px] text-white/65 mb-2">Already have an account?</p>
             <button onClick={onSwitch} className="btn-secondary w-full">
               <Sparkles size={13} /> Sign In
             </button>

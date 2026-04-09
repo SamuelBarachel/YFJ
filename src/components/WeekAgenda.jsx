@@ -76,7 +76,7 @@ export default function WeekAgenda() {
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] mb-2" style={{ color: '#d96570' }}>Weekly Overview</p>
           <h2 className="text-2xl font-black text-white tracking-tight">Week's Agenda</h2>
-          <p className="text-sm text-white/30 mt-1 italic">"I understood by the books..."</p>
+          <p className="text-sm text-white/60 mt-1 italic">"I understood by the books..."</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setWeekOffset(w => w - 1)} className="btn-secondary p-2.5 !px-2.5">
@@ -116,7 +116,7 @@ export default function WeekAgenda() {
               className={`day-card text-left transition-all ${isToday ? 'today' : ''} ${hasActivity ? 'has-meeting' : ''} ${isSelected ? 'ring-2 ring-purple-500/50' : ''} ${isPast && !isToday ? 'opacity-50' : ''}`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/30">{DAY_SHORT[i]}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/62">{DAY_SHORT[i]}</span>
               </div>
               <div className={`text-2xl font-black mb-2 ${dateColor} ${hasActivity ? 'underline decoration-2 underline-offset-4' : ''}`}>
                 {day.getDate()}
@@ -129,11 +129,11 @@ export default function WeekAgenda() {
                     </div>
                   ))}
                   {dayMeetings.length > 2 && (
-                    <p className="text-[9px] text-white/30 font-bold">+{dayMeetings.length - 2} more</p>
+                    <p className="text-[9px] text-white/62 font-bold">+{dayMeetings.length - 2} more</p>
                   )}
                 </div>
               ) : (
-                <p className="text-[9px] text-white/20"> - - </p>
+                <p className="text-[9px] text-white/48"> - - </p>
               )}
             </button>
           );
@@ -144,11 +144,11 @@ export default function WeekAgenda() {
       {selectedDay !== null && (
         <div className="mb-8 animate-slide-up">
           <div className="section-card p-6">
-            <h3 className="text-sm font-black uppercase tracking-widest text-white/60 mb-4">
+            <h3 className="text-sm font-black uppercase tracking-widest text-white/78 mb-4">
               {DAYS[selectedDay]}, {MONTHS[weekDays[selectedDay].getMonth()]} {weekDays[selectedDay].getDate()}
             </h3>
             {selectedMeetings.length === 0 ? (
-              <p className="text-white/30 text-sm py-4 text-center">No meetings scheduled for this day.</p>
+              <p className="text-white/62 text-sm py-4 text-center">No meetings scheduled for this day.</p>
             ) : (
               <div className="space-y-3">
                 {selectedMeetings.map(m => <MeetingCard key={m.id} m={m} />)}
@@ -166,13 +166,13 @@ export default function WeekAgenda() {
           </div>
           <div>
             <h3 className="text-base font-black text-white">Full Week Schedule</h3>
-            <p className="text-xs text-white/35">{allThisWeek.length} meeting{allThisWeek.length !== 1 ? 's' : ''} this week</p>
+            <p className="text-xs text-white/65">{allThisWeek.length} meeting{allThisWeek.length !== 1 ? 's' : ''} this week</p>
           </div>
         </div>
         {allThisWeek.length === 0 ? (
           <div className="text-center py-12">
             <CalendarDays size={40} className="mx-auto mb-3 text-white/15" />
-            <p className="text-white/30 text-sm">No meetings scheduled this week.</p>
+            <p className="text-white/62 text-sm">No meetings scheduled this week.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -203,7 +203,7 @@ function MeetingCard({ m, showDate, completed }) {
             <span className={`badge ${TYPE_COLORS[m.type] || 'badge-blue'}`}>{m.type}</span>
             <h4 className={`text-sm font-black text-white ${completed ? 'line-through opacity-60' : ''}`}>{m.title}</h4>
           </div>
-          <div className="flex items-center gap-4 text-[11px] text-white/40 flex-wrap">
+          <div className="flex items-center gap-4 text-[11px] text-white/70 flex-wrap">
             {showDate && m.date && <span className="flex items-center gap-1"><CalendarDays size={10} />{formatDate(m.date)}</span>}
             {(m.timeStart || m.timeEnd) && (
               <span className="flex items-center gap-1">
@@ -220,8 +220,8 @@ function MeetingCard({ m, showDate, completed }) {
       </div>
       {m.agenda && (
         <div className="mt-3 pt-3 border-t border-white/[0.06]">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/25 mb-1">Agenda</p>
-          <p className="text-xs text-white/50 whitespace-pre-line leading-relaxed">{m.agenda}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/55 mb-1">Agenda</p>
+          <p className="text-xs text-white/75 whitespace-pre-line leading-relaxed">{m.agenda}</p>
         </div>
       )}
     </div>

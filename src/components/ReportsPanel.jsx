@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, FileText, Calendar, BarChart3, BookOpen, Download, Globe, Lock, Eye } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { compileYFJReport } from '../api/aiService';
@@ -98,6 +99,7 @@ async function buildContext(period, userRole) {
 
 export default function ReportsPanel() {
   const { currentUser } = useAuth();
+  const { showDone } = useToast();
   const userRole = currentUser?.role || '';
 
   const [period, setPeriod] = useState('weekly');
@@ -147,6 +149,7 @@ export default function ReportsPanel() {
       createdAt: serverTimestamp(),
     });
     setSaving(false);
+    showDone('Report saved!');
   };
 
   const publishReport = async (r) => {
@@ -163,6 +166,7 @@ export default function ReportsPanel() {
     await setDoc(doc(db, 'publishedReports', r.id), pubData);
     await updateDoc(doc(db, 'users', currentUser.uid, 'reports', r.id), { published: true });
     setPublishing(false);
+    showDone('Report published!');
   };
 
   const download = (content, filename) => {
@@ -171,6 +175,7 @@ export default function ReportsPanel() {
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+    showDone('Downloading...');
   };
 
   const periodInfo = PERIODS.find(p => p.id === period);
@@ -185,7 +190,7 @@ export default function ReportsPanel() {
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] mb-1.5" style={{ color: '#fbbc04' }}>Cub Intelligence</p>
           <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Reports</h2>
-          <p className="text-xs md:text-sm text-white/30 mt-1 italic">"I understood by the books..."</p>
+          <p className="text-xs md:text-sm text-white/60 mt-1 italic">"I understood by the books..."</p>
         </div>
         {savedReports.length > 0 && (
           <button onClick={() => setShowSaved(!showSaved)} className="btn-secondary text-xs">
@@ -222,7 +227,7 @@ export default function ReportsPanel() {
       {/* Saved reports list */}
       {showSaved && savedReports.length > 0 && (
         <div className="section-card p-4 mb-6 animate-slide-up">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">My Reports</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-3">My Reports</p>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {savedReports.map(r => (
               <div
@@ -234,7 +239,7 @@ export default function ReportsPanel() {
                     <p className="text-xs font-bold text-white/70 truncate">{r.label}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="badge badge-purple">{r.period}</span>
-                      <span className="text-[10px] text-white/30">{r.generatedAt ? new Date(r.generatedAt).toLocaleDateString() : ''}</span>
+                      <span className="text-[10px] text-white/60">{r.generatedAt ? new Date(r.generatedAt).toLocaleDateString() : ''}</span>
                       {r.published && <span className="badge badge-green"><Globe size={7} /> Published</span>}
                     </div>
                   </button>
@@ -261,10 +266,10 @@ export default function ReportsPanel() {
             <Sparkles size={28} className="text-white" />
           </div>
           <h3 className="text-lg font-black text-white mb-2">Meet Cub</h3>
-          <p className="text-white/35 text-sm leading-relaxed max-w-xs">
+          <p className="text-white/65 text-sm leading-relaxed max-w-xs">
             Your YFJ AI assistant. Select a period above and let Cub compile your meetings and notes into a professional report.
           </p>
-          <p className="mt-5 text-[11px] text-white/20 italic">"I understood by the books..."</p>
+          <p className="mt-5 text-[11px] text-white/52 italic">"I understood by the books..."</p>
         </div>
       )}
 
@@ -275,7 +280,7 @@ export default function ReportsPanel() {
             <Sparkles size={24} className="text-white" />
           </div>
           <p className="text-white/70 font-black text-sm">Cub is thinking...</p>
-          <p className="text-white/30 text-xs mt-1">Reviewing your records</p>
+          <p className="text-white/60 text-xs mt-1">Reviewing your records</p>
         </div>
       )}
 

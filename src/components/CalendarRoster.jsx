@@ -4,6 +4,7 @@ import {
   MapPin, CheckCircle, LayoutList, UserCheck, FileText, Bell
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { db } from '../firebase/config';
 import {
   collection, query, orderBy, onSnapshot,
@@ -71,6 +72,7 @@ function Label({ children, color = '#4285f4' }) {
 
 export default function CalendarRoster() {
   const { currentUser } = useAuth();
+  const { showDone } = useToast();
   const userRole = currentUser?.role || '';
   const canEdit = PRIVILEGED_ROLES.includes(userRole);
   const isRestricted = RESTRICTED_ROLES.includes(userRole);
@@ -117,10 +119,12 @@ export default function CalendarRoster() {
       });
     }
     setShowRosterForm(false); setRosterEditId(null);
+    showDone('Roster saved!');
   };
 
   const deleteRoster = async (id) => {
     await deleteDoc(doc(db, 'roster', id));
+    showDone('Removed.', 'danger');
   };
 
   /* ─── MEETINGS CRUD ─── */
@@ -140,14 +144,17 @@ export default function CalendarRoster() {
       });
     }
     setShowMeetingForm(false); setMeetingEditId(null);
+    showDone('Meeting saved!');
   };
 
   const deleteMeeting = async (id) => {
     await deleteDoc(doc(db, 'meetings', id));
+    showDone('Meeting deleted.', 'danger');
   };
 
   const markComplete = async (id) => {
     await updateDoc(doc(db, 'meetings', id), { status: 'Completed', updatedAt: serverTimestamp() });
+    showDone('Marked complete!');
   };
 
   const toggleNotifyRole = (role) => {
@@ -180,7 +187,7 @@ export default function CalendarRoster() {
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] mb-1.5" style={{ color: '#0dbfcf' }}>Meeting Management</p>
           <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Calendar & Roster</h2>
-          <p className="text-xs md:text-sm italic mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>"I understood by the books..."</p>
+          <p className="text-xs md:text-sm italic mt-1" style={{ color: 'rgba(255,255,255,0.70)' }}>"I understood by the books..."</p>
         </div>
         {innerTab === 'roster' && canEdit && (
           <button onClick={openNewRoster} className="btn-primary flex-shrink-0"><Plus size={14} /> Add to Roster</button>
@@ -198,7 +205,7 @@ export default function CalendarRoster() {
           className="flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-wide transition-all"
           style={innerTab === 'roster'
             ? { background: 'linear-gradient(135deg,#0dbfcf,#4285f4)', color: 'white' }
-            : { color: 'rgba(255,255,255,0.4)' }}
+            : { color: 'rgba(255,255,255,0.70)' }}
         >
           <UserCheck size={14} /> Weekly Roster
         </button>
@@ -207,7 +214,7 @@ export default function CalendarRoster() {
           className="flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-wide transition-all"
           style={innerTab === 'meetings'
             ? { background: 'linear-gradient(135deg,#4285f4,#9b72f3)', color: 'white' }
-            : { color: 'rgba(255,255,255,0.4)' }}
+            : { color: 'rgba(255,255,255,0.70)' }}
         >
           <FileText size={14} /> Meeting Details
         </button>
@@ -232,7 +239,7 @@ export default function CalendarRoster() {
                 style={{ background: 'linear-gradient(135deg,#0dbfcf,#4285f4)' }}>
                 <UserCheck size={28} className="text-white" />
               </div>
-              <p className="font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>No roster entries yet.</p>
+              <p className="font-bold" style={{ color: 'rgba(255,255,255,0.70)' }}>No roster entries yet.</p>
               {canEdit && (
                 <button onClick={openNewRoster} className="mt-3 text-xs font-bold" style={{ color: '#0dbfcf' }}>
                   Add the first roster entry →
@@ -361,9 +368,9 @@ export default function CalendarRoster() {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-lg font-black text-white">{rosterEditId ? 'Edit Roster Entry' : 'New Roster Entry'}</h3>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Assign chair and secretary for a meeting date</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>Assign chair and secretary for a meeting date</p>
                   </div>
-                  <button onClick={() => setShowRosterForm(false)} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/05" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <button onClick={() => setShowRosterForm(false)} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/05" style={{ color: 'rgba(255,255,255,0.70)' }}>
                     <X size={18} />
                   </button>
                 </div>
@@ -415,7 +422,7 @@ export default function CalendarRoster() {
                 style={{ background: 'linear-gradient(135deg,#4285f4,#9b72f3)' }}>
                 <CalendarDays size={28} className="text-white" />
               </div>
-              <p className="font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>No meetings scheduled.</p>
+              <p className="font-bold" style={{ color: 'rgba(255,255,255,0.70)' }}>No meetings scheduled.</p>
               <button onClick={openNewMeeting} className="mt-3 text-xs font-bold" style={{ color: '#4285f4' }}>Schedule one →</button>
             </div>
           ) : (
@@ -471,9 +478,9 @@ export default function CalendarRoster() {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-lg font-black text-white">{meetingEditId ? 'Edit Meeting' : 'Schedule New Meeting'}</h3>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Enter meeting details and agenda</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.65)' }}>Enter meeting details and agenda</p>
                   </div>
-                  <button onClick={() => setShowMeetingForm(false)} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/05" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <button onClick={() => setShowMeetingForm(false)} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/05" style={{ color: 'rgba(255,255,255,0.70)' }}>
                     <X size={18} />
                   </button>
                 </div>
@@ -546,14 +553,14 @@ export default function CalendarRoster() {
                             className="text-[10px] font-black px-3 py-1.5 rounded-xl transition-all"
                             style={active
                               ? { background: 'linear-gradient(135deg,#4285f4,#9b72f3)', color: 'white' }
-                              : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }
+                              : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.72)' }
                             }>
                             {role}
                           </button>
                         );
                       })}
                     </div>
-                    <p className="text-[9px] text-white/25 mt-1.5">People with these roles who enabled notifications will receive reminders.</p>
+                    <p className="text-[9px] text-white/55 mt-1.5">People with these roles who enabled notifications will receive reminders.</p>
                   </div>
 
                   <div className="flex gap-3 pt-2">
@@ -628,7 +635,7 @@ function MeetingCard({ m, completed, canEdit, onEdit, onDelete, onComplete }) {
         )}
 
         {m.location && !completed && (
-          <div className="flex items-center gap-1.5 text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <div className="flex items-center gap-1.5 text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.72)' }}>
             <MapPin size={10} /> {m.location}
           </div>
         )}
