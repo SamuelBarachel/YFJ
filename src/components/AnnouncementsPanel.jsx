@@ -64,7 +64,7 @@ export default function AnnouncementsPanel() {
           <p className="text-sm text-white/30 mt-1 italic">"I understood by the books..."</p>
         </div>
         <button onClick={() => setShowForm(true)} className="btn-primary">
-          <Plus size={14} /> Post Announcement
+          <Plus size={14} /> Publish
         </button>
       </div>
 
