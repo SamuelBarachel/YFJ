@@ -98,9 +98,11 @@ export default function WeekAgenda() {
           const isPast = day < today;
           const isFuture = day > today;
           const isSelected = selectedDay === i;
+          const hasActivity = dayMeetings.length > 0;
 
+          // Color logic
           let dateColor = 'text-white/80';
-          if (isToday) dateColor = 'text-green-500 underline';
+          if (isToday) dateColor = 'text-green-500';
           else if (isPast) dateColor = 'text-red-500';
           else if (isFuture) dateColor = 'text-yellow-500';
 
@@ -108,12 +110,12 @@ export default function WeekAgenda() {
             <button
               key={i}
               onClick={() => setSelectedDay(isSelected ? null : i)}
-              className={`day-card text-left transition-all ${isToday ? 'today' : ''} ${dayMeetings.length > 0 ? 'has-meeting' : ''} ${isSelected ? 'ring-2 ring-purple-500/50' : ''} ${isPast && !isToday ? 'opacity-50' : ''}`}
+              className={`day-card text-left transition-all ${isToday ? 'today' : ''} ${hasActivity ? 'has-meeting' : ''} ${isSelected ? 'ring-2 ring-purple-500/50' : ''} ${isPast && !isToday ? 'opacity-50' : ''}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/30">{DAY_SHORT[i]}</span>
               </div>
-              <div className={`text-2xl font-black mb-2 ${dateColor}`}>
+              <div className={`text-2xl font-black mb-2 ${dateColor} ${hasActivity ? 'underline decoration-2 underline-offset-4' : ''}`}>
                 {day.getDate()}
               </div>
               {dayMeetings.length > 0 ? (
