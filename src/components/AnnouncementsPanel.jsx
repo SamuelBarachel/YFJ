@@ -15,7 +15,7 @@ const CATEGORY_COLORS = {
   'Leadership': 'badge-yellow',
 };
 
-// --- MODAL COMPONENT (Defined outside to prevent re-render focus loss) ---
+// --- MODAL COMPONENT ---
 const AnnouncementModal = ({ 
   form, 
   setForm, 
@@ -25,11 +25,12 @@ const AnnouncementModal = ({
   NOTIFY_OPTIONS 
 }) => {
   return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-[#04080f]/90 backdrop-blur-xl flex justify-center p-4 sm:p-10">
-      <div className="min-h-full w-full flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-[#04080f]/90 backdrop-blur-xl">
+      {/* Centering Wrapper: Prevents horizontal wobble */}
+      <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
         <div 
-          className="section-card relative w-full max-w-lg p-8 animate-slide-up rounded-2xl shadow-2xl"
-          style={{ height: 'auto', display: 'block' }}
+          className="section-card relative w-full max-w-lg p-8 animate-slide-up rounded-2xl shadow-2xl text-left"
+          style={{ transform: 'translateZ(0)' }} 
         >
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-black text-white">Post Announcement</h3>
@@ -134,6 +135,22 @@ export default function AnnouncementsPanel() {
 
   const NOTIFY_OPTIONS = ['All', ...ALL_ROLES];
 
+  // Prevent Body Scroll & Layout Shift when Modal opens
+  useEffect(() => {
+    if (showForm) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      document.body.style.overflow = 'unset';
+      document.body.style.paddingRight = '0px';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.style.paddingRight = '0px';
+    };
+  }, [showForm]);
+
   useEffect(() => {
     const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (snap) => {
@@ -144,7 +161,6 @@ export default function AnnouncementsPanel() {
   const add = async () => {
     if (!form.title.trim()) return;
 
-    // 1. Firebase Save
     const announcementData = {
       ...form,
       author: currentUser?.fullName || currentUser?.email || 'System',
@@ -156,7 +172,6 @@ export default function AnnouncementsPanel() {
 
     await addDoc(collection(db, 'announcements'), announcementData);
 
-    // 2. Global Broadcast (Restore Global Notification)
     try {
       await fetch('/api/send-broadcast', {
         method: 'POST',
