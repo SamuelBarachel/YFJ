@@ -99,7 +99,6 @@ export default function WeekAgenda() {
           const isFuture = day > today;
           const isSelected = selectedDay === i;
 
-          // Color logic
           let dateColor = 'text-white/80';
           if (isToday) dateColor = 'text-green-500 underline';
           else if (isPast) dateColor = 'text-red-500';
@@ -113,7 +112,6 @@ export default function WeekAgenda() {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/30">{DAY_SHORT[i]}</span>
-                {isToday && <span className="badge badge-purple" style={{fontSize:'8px'}}>Today</span>}
               </div>
               <div className={`text-2xl font-black mb-2 ${dateColor}`}>
                 {day.getDate()}
