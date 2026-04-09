@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
   CalendarDays, Plus, Edit2, Trash2, X, Clock, Users,
-  MapPin, CheckCircle, LayoutList, UserCheck, FileText
+  MapPin, CheckCircle, LayoutList, UserCheck, FileText, Bell
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const MEETINGS_KEY = 'yfj_meetings';
-const ROSTER_KEY = 'yfj_roster';
+import { db } from '../firebase/config';
+import {
+  collection, query, orderBy, onSnapshot,
+  addDoc, updateDoc, deleteDoc, doc, serverTimestamp
+} from 'firebase/firestore';
+import { ALL_ROLES } from '../context/AuthContext';
 
 const PRIVILEGED_ROLES = ['YFJ Chair', 'TC', 'Territory Coordinator', 'RC', 'Regional Coordinator', 'Deacon'];
 const RESTRICTED_ROLES = ['EY', 'YFJ'];
-
-function load(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } }
-function persist(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
 
 function getInitials(name = '') {
   return name.trim().split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -56,10 +56,11 @@ const TYPE_STYLE = {
 };
 const MEETING_TYPES = Object.keys(TYPE_STYLE);
 
-const EMPTY_MEETING = { title: '', agenda: '', date: '', timeStart: '', timeEnd: '', chair: '', location: '', type: 'Weekly Devotional', status: 'Scheduled', notes: '' };
-const EMPTY_ROSTER  = { date: '', timeEST: '', chair: '', secretary: '' };
+const EMPTY_MEETING = { title: '', agenda: '', date: '', timeStart: '', timeEnd: '', chair: '', location: '', type: 'Weekly Devotional', status: 'Scheduled', notes: '', notifyRoles: ['All'] };
+const EMPTY_ROSTER = { date: '', timeEST: '', chair: '', secretary: '' };
 
-/* ─── LABEL helper ─── */
+const NOTIFY_OPTIONS = ['All', ...ALL_ROLES];
+
 function Label({ children, color = '#4285f4' }) {
   return (
     <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color }}>
@@ -76,13 +77,11 @@ export default function CalendarRoster() {
 
   const [innerTab, setInnerTab] = useState('roster');
 
-  /* ── Roster state ── */
   const [roster, setRoster] = useState([]);
   const [showRosterForm, setShowRosterForm] = useState(false);
   const [rosterEditId, setRosterEditId] = useState(null);
   const [rosterForm, setRosterForm] = useState(EMPTY_ROSTER);
 
-  /* ── Meetings state ── */
   const [meetings, setMeetings] = useState([]);
   const [showMeetingForm, setShowMeetingForm] = useState(false);
   const [meetingEditId, setMeetingEditId] = useState(null);
@@ -90,74 +89,93 @@ export default function CalendarRoster() {
   const [filter, setFilter] = useState('All');
 
   useEffect(() => {
-    setRoster(load(ROSTER_KEY).sort((a, b) => (a.date || '').localeCompare(b.date || '')));
-    setMeetings(load(MEETINGS_KEY));
+    const qr = query(collection(db, 'roster'), orderBy('date', 'asc'));
+    const unsubR = onSnapshot(qr, (snap) => {
+      setRoster(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    const qm = query(collection(db, 'meetings'), orderBy('date', 'asc'));
+    const unsubM = onSnapshot(qm, (snap) => {
+      setMeetings(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => { unsubR(); unsubM(); };
   }, []);
 
-  /* ─────────────── ROSTER CRUD ─────────────── */
+  /* ─── ROSTER CRUD ─── */
   const openNewRoster = () => { setRosterForm(EMPTY_ROSTER); setRosterEditId(null); setShowRosterForm(true); };
   const openEditRoster = (r) => { setRosterForm({ ...r }); setRosterEditId(r.id); setShowRosterForm(true); };
 
-  const saveRoster = () => {
+  const saveRoster = async () => {
     if (!rosterForm.date) return;
-    const all = load(ROSTER_KEY);
-    let updated;
     if (rosterEditId) {
-      updated = all.map(r => r.id === rosterEditId ? { ...r, ...rosterForm, updatedAt: new Date().toISOString() } : r);
+      await updateDoc(doc(db, 'roster', rosterEditId), { ...rosterForm, updatedAt: serverTimestamp() });
     } else {
-      const newR = { id: Date.now().toString(), ...rosterForm, createdBy: currentUser?.fullName || '', creatorRole: userRole, createdAt: new Date().toISOString() };
-      updated = [...all, newR];
+      await addDoc(collection(db, 'roster'), {
+        ...rosterForm,
+        createdBy: currentUser?.fullName || '',
+        creatorRole: userRole,
+        createdAt: serverTimestamp(),
+      });
     }
-    updated.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-    persist(ROSTER_KEY, updated); setRoster(updated);
     setShowRosterForm(false); setRosterEditId(null);
   };
 
-  const deleteRoster = (id) => {
-    const updated = load(ROSTER_KEY).filter(r => r.id !== id);
-    persist(ROSTER_KEY, updated); setRoster(updated);
+  const deleteRoster = async (id) => {
+    await deleteDoc(doc(db, 'roster', id));
   };
 
-  /* ─────────────── MEETINGS CRUD ─────────────── */
+  /* ─── MEETINGS CRUD ─── */
   const openNewMeeting = () => { setMeetingForm(EMPTY_MEETING); setMeetingEditId(null); setShowMeetingForm(true); };
   const openEditMeeting = (m) => { setMeetingForm({ ...m }); setMeetingEditId(m.id); setShowMeetingForm(true); };
 
-  const saveMeeting = () => {
+  const saveMeeting = async () => {
     if (!meetingForm.title.trim()) return;
-    const all = load(MEETINGS_KEY);
-    let updated;
     if (meetingEditId) {
-      updated = all.map(m => m.id === meetingEditId ? { ...m, ...meetingForm, updatedAt: new Date().toISOString() } : m);
+      await updateDoc(doc(db, 'meetings', meetingEditId), { ...meetingForm, updatedAt: serverTimestamp() });
     } else {
-      const newM = { id: Date.now().toString(), ...meetingForm, createdBy: currentUser?.fullName || currentUser?.email || 'Unknown', creatorRole: userRole, createdAt: new Date().toISOString() };
-      updated = [...all, newM];
+      await addDoc(collection(db, 'meetings'), {
+        ...meetingForm,
+        createdBy: currentUser?.fullName || currentUser?.email || 'Unknown',
+        creatorRole: userRole,
+        createdAt: serverTimestamp(),
+      });
     }
-    persist(MEETINGS_KEY, updated); setMeetings(updated);
     setShowMeetingForm(false); setMeetingEditId(null);
   };
 
-  const deleteMeeting = (id) => {
-    const updated = load(MEETINGS_KEY).filter(m => m.id !== id);
-    persist(MEETINGS_KEY, updated); setMeetings(updated);
+  const deleteMeeting = async (id) => {
+    await deleteDoc(doc(db, 'meetings', id));
   };
 
-  const markComplete = (id) => {
-    const updated = load(MEETINGS_KEY).map(m => m.id === id ? { ...m, status: 'Completed' } : m);
-    persist(MEETINGS_KEY, updated); setMeetings(updated);
+  const markComplete = async (id) => {
+    await updateDoc(doc(db, 'meetings', id), { status: 'Completed', updatedAt: serverTimestamp() });
   };
 
-  const visibleMeetings = meetings
-    .filter(m => {
-      const typeMatch = filter === 'All' || m.type === filter;
-      const roleMatch = !isRestricted || !PRIVILEGED_ROLES.includes(m.creatorRole);
-      return typeMatch && roleMatch;
-    })
-    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const toggleNotifyRole = (role) => {
+    if (role === 'All') {
+      setMeetingForm(f => ({ ...f, notifyRoles: ['All'] }));
+      return;
+    }
+    setMeetingForm(f => {
+      const roles = (f.notifyRoles || []).filter(r => r !== 'All');
+      return {
+        ...f,
+        notifyRoles: roles.includes(role) ? roles.filter(r => r !== role) : [...roles, role],
+      };
+    });
+  };
 
-  /* ─────────────── RENDER ─────────────── */
+  const allMeetings = meetings.filter(m => {
+    const typeMatch = filter === 'All' || m.type === filter;
+    const roleMatch = !isRestricted || !PRIVILEGED_ROLES.includes(m.creatorRole);
+    return typeMatch && roleMatch;
+  }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  const activeMeetings = allMeetings.filter(m => m.status !== 'Completed' && m.status !== 'Cancelled');
+  const completedMeetings = allMeetings.filter(m => m.status === 'Completed');
+  const cancelledMeetings = allMeetings.filter(m => m.status === 'Cancelled');
+
   return (
     <div className="animate-slide-up">
-      {/* Page header */}
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] mb-1.5" style={{ color: '#0dbfcf' }}>Meeting Management</p>
@@ -195,9 +213,7 @@ export default function CalendarRoster() {
         </button>
       </div>
 
-      {/* ═══════════════════════════════════════════
-          ROSTER TAB
-      ═══════════════════════════════════════════ */}
+      {/* ═══ ROSTER TAB ═══ */}
       {innerTab === 'roster' && (
         <div>
           {!canEdit && (
@@ -225,9 +241,7 @@ export default function CalendarRoster() {
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Table header — desktop */}
-              <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-2"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="col-span-3 text-[10px] font-black uppercase tracking-widest" style={{ color: '#0dbfcf' }}>Date</div>
                 <div className="col-span-2 text-[10px] font-black uppercase tracking-widest" style={{ color: '#4285f4' }}>Time (EST)</div>
                 <div className="col-span-3 text-[10px] font-black uppercase tracking-widest" style={{ color: '#9b72f3' }}>Meeting Chair</div>
@@ -235,25 +249,20 @@ export default function CalendarRoster() {
                 <div className="col-span-1" />
               </div>
 
-              {roster.map((r, idx) => {
+              {roster.map((r) => {
                 const isToday = r.date === new Date().toISOString().split('T')[0];
                 return (
-                  <div key={r.id}
-                    className="rounded-2xl overflow-hidden group"
+                  <div key={r.id} className="rounded-2xl overflow-hidden group"
                     style={{
                       background: isToday ? 'rgba(13,191,207,0.07)' : 'rgba(255,255,255,0.03)',
                       border: isToday ? '1px solid rgba(13,191,207,0.25)' : '1px solid rgba(255,255,255,0.06)',
                     }}>
-                    {/* Color strip */}
                     <div className="h-1 w-full" style={{ background: isToday ? 'linear-gradient(90deg,#0dbfcf,#4285f4)' : 'linear-gradient(90deg,rgba(66,133,244,0.4),rgba(155,114,243,0.4))' }} />
-
-                    {/* Desktop row */}
+                    {/* Desktop */}
                     <div className="hidden md:grid grid-cols-12 gap-4 items-center px-5 py-4">
                       <div className="col-span-3">
                         <p className="text-sm font-black text-white">{formatDateShort(r.date)}</p>
-                        {isToday && (
-                          <span className="text-[10px] font-black rounded px-1.5 py-0.5" style={{ background: 'rgba(13,191,207,0.2)', color: '#0dbfcf' }}>TODAY</span>
-                        )}
+                        {isToday && <span className="text-[10px] font-black rounded px-1.5 py-0.5" style={{ background: 'rgba(13,191,207,0.2)', color: '#0dbfcf' }}>TODAY</span>}
                       </div>
                       <div className="col-span-2">
                         <div className="flex items-center gap-1.5">
@@ -282,22 +291,15 @@ export default function CalendarRoster() {
                       <div className="col-span-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
                         {canEdit && (
                           <>
-                            <button onClick={() => openEditRoster(r)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center"
-                              style={{ background: 'rgba(66,133,244,0.15)', color: '#4285f4' }}>
-                              <Edit2 size={11} />
-                            </button>
-                            <button onClick={() => deleteRoster(r.id)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center"
-                              style={{ background: 'rgba(217,101,112,0.15)', color: '#d96570' }}>
-                              <Trash2 size={11} />
-                            </button>
+                            <button onClick={() => openEditRoster(r)} className="w-7 h-7 rounded-lg flex items-center justify-center"
+                              style={{ background: 'rgba(66,133,244,0.15)', color: '#4285f4' }}><Edit2 size={11} /></button>
+                            <button onClick={() => deleteRoster(r.id)} className="w-7 h-7 rounded-lg flex items-center justify-center"
+                              style={{ background: 'rgba(217,101,112,0.15)', color: '#d96570' }}><Trash2 size={11} /></button>
                           </>
                         )}
                       </div>
                     </div>
-
-                    {/* Mobile card */}
+                    {/* Mobile */}
                     <div className="md:hidden p-4 space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
@@ -307,9 +309,7 @@ export default function CalendarRoster() {
                             <span className="text-xs font-bold" style={{ color: '#4285f4' }}>{r.timeEST ? formatTime(r.timeEST) + ' EST' : 'Time TBD'}</span>
                           </div>
                         </div>
-                        {isToday && (
-                          <span className="text-[10px] font-black rounded px-2 py-1" style={{ background: 'rgba(13,191,207,0.2)', color: '#0dbfcf' }}>TODAY</span>
-                        )}
+                        {isToday && <span className="text-[10px] font-black rounded px-2 py-1" style={{ background: 'rgba(13,191,207,0.2)', color: '#0dbfcf' }}>TODAY</span>}
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="p-2.5 rounded-xl" style={{ background: 'rgba(155,114,243,0.08)' }}>
@@ -354,7 +354,6 @@ export default function CalendarRoster() {
             </div>
           )}
 
-          {/* Roster Form Modal */}
           {showRosterForm && canEdit && (
             <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto"
               style={{ background: 'rgba(4,8,15,0.92)', backdropFilter: 'blur(16px)' }}>
@@ -364,7 +363,7 @@ export default function CalendarRoster() {
                     <h3 className="text-lg font-black text-white">{rosterEditId ? 'Edit Roster Entry' : 'New Roster Entry'}</h3>
                     <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Assign chair and secretary for a meeting date</p>
                   </div>
-                  <button onClick={() => setShowRosterForm(false)} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/05 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <button onClick={() => setShowRosterForm(false)} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/05" style={{ color: 'rgba(255,255,255,0.4)' }}>
                     <X size={18} />
                   </button>
                 </div>
@@ -398,12 +397,9 @@ export default function CalendarRoster() {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════
-          MEETINGS TAB
-      ═══════════════════════════════════════════ */}
+      {/* ═══ MEETINGS TAB ═══ */}
       {innerTab === 'meetings' && (
         <div>
-          {/* Filter tabs */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none mb-5">
             {['All', ...MEETING_TYPES.slice(0, 4)].map(f => (
               <button key={f} onClick={() => setFilter(f)} className={`period-tab flex-shrink-0 ${filter === f ? 'active' : 'inactive'}`}>
@@ -412,7 +408,8 @@ export default function CalendarRoster() {
             ))}
           </div>
 
-          {visibleMeetings.length === 0 ? (
+          {/* Active meetings */}
+          {activeMeetings.length === 0 && completedMeetings.length === 0 ? (
             <div className="rounded-2xl p-16 text-center" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}>
               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 opacity-30"
                 style={{ background: 'linear-gradient(135deg,#4285f4,#9b72f3)' }}>
@@ -422,88 +419,48 @@ export default function CalendarRoster() {
               <button onClick={openNewMeeting} className="mt-3 text-xs font-bold" style={{ color: '#4285f4' }}>Schedule one →</button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {visibleMeetings.map(m => {
-                const ts = TYPE_STYLE[m.type] || TYPE_STYLE['Weekly Devotional'];
-                const ss = STATUS_STYLE[m.status] || STATUS_STYLE['Scheduled'];
-                const bullets = getBullets(m.agenda, 3);
-                return (
-                  <div key={m.id} className="rounded-2xl overflow-hidden group"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div className="h-1.5 w-full" style={{ background: ts.gradient }} />
-                    <div className="p-5">
-                      {/* Chair avatar */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white flex-shrink-0"
-                          style={{ background: ts.gradient, boxShadow: `0 4px 14px ${ts.accent}40` }}>
-                          {getInitials(m.chair || m.createdBy)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black text-white truncate">{m.chair || 'Chair TBD'}</p>
-                          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: ts.accent }}>Meeting Chair</p>
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEditMeeting(m)} className="w-7 h-7 rounded-lg flex items-center justify-center"
-                            style={{ background: 'rgba(66,133,244,0.15)', color: '#4285f4' }}><Edit2 size={11} /></button>
-                          <button onClick={() => deleteMeeting(m.id)} className="w-7 h-7 rounded-lg flex items-center justify-center"
-                            style={{ background: 'rgba(217,101,112,0.15)', color: '#d96570' }}><Trash2 size={11} /></button>
-                        </div>
-                      </div>
+            <>
+              {activeMeetings.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+                  {activeMeetings.map(m => (
+                    <MeetingCard
+                      key={m.id}
+                      m={m}
+                      canEdit={canEdit || m.createdBy === (currentUser?.fullName || currentUser?.email)}
+                      onEdit={() => openEditMeeting(m)}
+                      onDelete={() => deleteMeeting(m.id)}
+                      onComplete={() => markComplete(m.id)}
+                    />
+                  ))}
+                </div>
+              )}
 
-                      <h3 className="text-base font-black text-white mb-2 leading-tight">{m.title}</h3>
-
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {m.date && (
-                          <span className="flex items-center gap-1.5 text-[11px] font-bold rounded-lg px-2.5 py-1"
-                            style={{ background: `${ts.accent}18`, color: ts.accent }}>
-                            <CalendarDays size={10} /> {formatDateShort(m.date)}
-                          </span>
-                        )}
-                        {m.timeStart && (
-                          <span className="flex items-center gap-1.5 text-[11px] font-bold rounded-lg px-2.5 py-1"
-                            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>
-                            <Clock size={10} /> {formatTime(m.timeStart)}{m.timeEnd ? ` – ${formatTime(m.timeEnd)}` : ''}
-                          </span>
-                        )}
-                      </div>
-
-                      {bullets.length > 0 && (
-                        <div className="space-y-1.5 mb-3">
-                          {bullets.map((b, i) => (
-                            <div key={i} className="flex items-start gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: ts.gradient }} />
-                              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>{b}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {m.location && (
-                        <div className="flex items-center gap-1.5 text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                          <MapPin size={10} /> {m.location}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-                        <span className="text-[10px] font-black rounded-lg px-2.5 py-1" style={{ background: ss.bg, color: ss.color }}>{m.status}</span>
-                        <div className="flex gap-2">
-                          <span className="text-[10px] font-bold rounded-lg px-2 py-1" style={{ background: `${ts.accent}15`, color: ts.accent }}>
-                            {(m.type || '').split(' ')[0]}
-                          </span>
-                          {m.status !== 'Completed' && m.status !== 'Cancelled' && (
-                            <button onClick={() => markComplete(m.id)}
-                              className="text-[10px] font-bold flex items-center gap-1 rounded-lg px-2.5 py-1"
-                              style={{ background: 'rgba(52,168,83,0.15)', color: '#34a853' }}>
-                              <CheckCircle size={10} /> Done
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+              {/* Completed meetings — strikethrough at bottom */}
+              {completedMeetings.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-px flex-1" style={{ background: 'rgba(52,168,83,0.2)' }} />
+                    <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'rgba(52,168,83,0.6)' }}>
+                      <CheckCircle size={12} /> Completed ({completedMeetings.length})
+                    </span>
+                    <div className="h-px flex-1" style={{ background: 'rgba(52,168,83,0.2)' }} />
                   </div>
-                );
-              })}
-            </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 opacity-60">
+                    {completedMeetings.map(m => (
+                      <MeetingCard
+                        key={m.id}
+                        m={m}
+                        completed
+                        canEdit={canEdit}
+                        onEdit={() => openEditMeeting(m)}
+                        onDelete={() => deleteMeeting(m.id)}
+                        onComplete={null}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Meeting Form Modal */}
@@ -523,7 +480,8 @@ export default function CalendarRoster() {
                 <div className="space-y-4">
                   <div>
                     <Label color="#4285f4">Meeting Title *</Label>
-                    <input className="yfj-input" placeholder="e.g. Wednesday Evening Devotional" value={meetingForm.title} onChange={e => setMeetingForm({ ...meetingForm, title: e.target.value })} />
+                    <input className="yfj-input" placeholder="e.g. Wednesday Evening Devotional"
+                      value={meetingForm.title} onChange={e => setMeetingForm({ ...meetingForm, title: e.target.value })} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -534,7 +492,8 @@ export default function CalendarRoster() {
                     </div>
                     <div>
                       <Label color="#9b72f3">Meeting Chair</Label>
-                      <input className="yfj-input" placeholder="Full name of chair..." value={meetingForm.chair} onChange={e => setMeetingForm({ ...meetingForm, chair: e.target.value })} />
+                      <input className="yfj-input" placeholder="Full name of chair..."
+                        value={meetingForm.chair} onChange={e => setMeetingForm({ ...meetingForm, chair: e.target.value })} />
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
@@ -553,11 +512,14 @@ export default function CalendarRoster() {
                   </div>
                   <div>
                     <Label color="#34a853">Location</Label>
-                    <input className="yfj-input" placeholder="Venue or online link..." value={meetingForm.location} onChange={e => setMeetingForm({ ...meetingForm, location: e.target.value })} />
+                    <input className="yfj-input" placeholder="Venue or online link..."
+                      value={meetingForm.location} onChange={e => setMeetingForm({ ...meetingForm, location: e.target.value })} />
                   </div>
                   <div>
-                    <Label color="#fbbc04">Agenda <span style={{ color: 'rgba(255,255,255,0.3)', textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>— one item per line (3 shown on cards)</span></Label>
-                    <textarea className="yfj-textarea" rows={4} placeholder="Prayer and worship&#10;Scripture reading&#10;Announcements..." value={meetingForm.agenda} onChange={e => setMeetingForm({ ...meetingForm, agenda: e.target.value })} />
+                    <Label color="#fbbc04">Agenda</Label>
+                    <textarea className="yfj-textarea" rows={4}
+                      placeholder="Prayer and worship&#10;Scripture reading&#10;Announcements..."
+                      value={meetingForm.agenda} onChange={e => setMeetingForm({ ...meetingForm, agenda: e.target.value })} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -568,9 +530,32 @@ export default function CalendarRoster() {
                     </div>
                     <div>
                       <Label color="#d96570">Additional Notes</Label>
-                      <input className="yfj-input" placeholder="Any extra notes..." value={meetingForm.notes} onChange={e => setMeetingForm({ ...meetingForm, notes: e.target.value })} />
+                      <input className="yfj-input" placeholder="Any extra notes..."
+                        value={meetingForm.notes} onChange={e => setMeetingForm({ ...meetingForm, notes: e.target.value })} />
                     </div>
                   </div>
+
+                  {/* Reminder targeting */}
+                  <div>
+                    <Label color="#4285f4"><Bell size={10} className="inline mr-1" /> Send reminders to</Label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {NOTIFY_OPTIONS.map(role => {
+                        const active = (meetingForm.notifyRoles || ['All']).includes(role);
+                        return (
+                          <button type="button" key={role} onClick={() => toggleNotifyRole(role)}
+                            className="text-[10px] font-black px-3 py-1.5 rounded-xl transition-all"
+                            style={active
+                              ? { background: 'linear-gradient(135deg,#4285f4,#9b72f3)', color: 'white' }
+                              : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }
+                            }>
+                            {role}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[9px] text-white/25 mt-1.5">People with these roles who enabled notifications will receive reminders.</p>
+                  </div>
+
                   <div className="flex gap-3 pt-2">
                     <button onClick={saveMeeting} className="btn-primary flex-1">{meetingEditId ? 'Save Changes' : 'Schedule Meeting'}</button>
                     <button onClick={() => setShowMeetingForm(false)} className="btn-secondary">Cancel</button>
@@ -581,6 +566,89 @@ export default function CalendarRoster() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function MeetingCard({ m, completed, canEdit, onEdit, onDelete, onComplete }) {
+  const ts = TYPE_STYLE[m.type] || TYPE_STYLE['Weekly Devotional'];
+  const ss = STATUS_STYLE[m.status] || STATUS_STYLE['Scheduled'];
+  const bullets = getBullets(m.agenda, 3);
+
+  return (
+    <div className="rounded-2xl overflow-hidden group"
+      style={{ background: completed ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="h-1.5 w-full" style={{ background: completed ? 'rgba(52,168,83,0.3)' : ts.gradient }} />
+      <div className="p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white flex-shrink-0"
+            style={{ background: completed ? 'rgba(52,168,83,0.3)' : ts.gradient, boxShadow: completed ? 'none' : `0 4px 14px ${ts.accent}40` }}>
+            {getInitials(m.chair || m.createdBy)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-white truncate">{m.chair || 'Chair TBD'}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: completed ? '#34a853' : ts.accent }}>Meeting Chair</p>
+          </div>
+          {canEdit && (
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={onEdit} className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(66,133,244,0.15)', color: '#4285f4' }}><Edit2 size={11} /></button>
+              <button onClick={onDelete} className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(217,101,112,0.15)', color: '#d96570' }}><Trash2 size={11} /></button>
+            </div>
+          )}
+        </div>
+
+        <h3 className={`text-base font-black text-white mb-2 leading-tight ${completed ? 'line-through opacity-60' : ''}`}>{m.title}</h3>
+
+        <div className="flex flex-wrap gap-2 mb-3">
+          {m.date && (
+            <span className="flex items-center gap-1.5 text-[11px] font-bold rounded-lg px-2.5 py-1"
+              style={{ background: `${completed ? '#34a853' : ts.accent}18`, color: completed ? '#34a853' : ts.accent }}>
+              <CalendarDays size={10} /> {formatDateShort(m.date)}
+            </span>
+          )}
+          {m.timeStart && (
+            <span className="flex items-center gap-1.5 text-[11px] font-bold rounded-lg px-2.5 py-1"
+              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>
+              <Clock size={10} /> {formatTime(m.timeStart)}{m.timeEnd ? ` – ${formatTime(m.timeEnd)}` : ''}
+            </span>
+          )}
+        </div>
+
+        {!completed && bullets.length > 0 && (
+          <div className="space-y-1.5 mb-3">
+            {bullets.map((b, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: ts.gradient }} />
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>{b}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {m.location && !completed && (
+          <div className="flex items-center gap-1.5 text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <MapPin size={10} /> {m.location}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+          <span className="text-[10px] font-black rounded-lg px-2.5 py-1" style={{ background: ss.bg, color: ss.color }}>{m.status}</span>
+          <div className="flex gap-2">
+            <span className="text-[10px] font-bold rounded-lg px-2 py-1" style={{ background: `${ts.accent}15`, color: ts.accent }}>
+              {(m.type || '').split(' ')[0]}
+            </span>
+            {onComplete && m.status !== 'Completed' && m.status !== 'Cancelled' && (
+              <button onClick={onComplete}
+                className="text-[10px] font-bold flex items-center gap-1 rounded-lg px-2.5 py-1"
+                style={{ background: 'rgba(52,168,83,0.15)', color: '#34a853' }}>
+                <CheckCircle size={10} /> Done
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

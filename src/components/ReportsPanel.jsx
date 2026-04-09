@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, FileText, Calendar, BarChart3, BookOpen, Download } from 'lucide-react';
+import { Sparkles, FileText, Calendar, BarChart3, BookOpen, Download, Globe, Lock, Eye } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { compileYFJReport } from '../api/aiService';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase/config';
+import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 
 const PRIVILEGED_ROLES = ['YFJ Chair', 'TC', 'Territory Coordinator', 'RC', 'Regional Coordinator', 'Deacon'];
 const RESTRICTED_ROLES = ['EY', 'YFJ'];
-
-const NOTES_KEY = 'yfj_notes';
-const MEETINGS_KEY = 'yfj_meetings';
-const REPORTS_KEY = 'yfj_saved_reports';
-
-function getData(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } }
-function saveData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+const NOTES_COLLECTION = 'notes';
+const MEETINGS_COLLECTION = 'meetings';
 
 const PERIODS = [
   { id: 'weekly',    label: 'Weekly',    icon: <Calendar size={14} />,  color: '#4285f4', desc: 'Current week summary' },
@@ -27,13 +24,13 @@ function getDateRange(period) {
   let start, end, label;
   if (period === 'weekly') {
     const day = now.getDay();
-    start = new Date(now); start.setDate(now.getDate() - day); start.setHours(0,0,0,0);
+    start = new Date(now); start.setDate(now.getDate() - day); start.setHours(0, 0, 0, 0);
     end = new Date(start); end.setDate(start.getDate() + 6);
-    label = `Week of ${start.toLocaleDateString('en-US', {month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}`;
+    label = `Week of ${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   } else if (period === 'monthly') {
     start = new Date(now.getFullYear(), now.getMonth(), 1);
     end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    label = now.toLocaleDateString('en-US', {month:'long', year:'numeric'});
+    label = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   } else if (period === 'quarterly') {
     const q = Math.floor(now.getMonth() / 3);
     start = new Date(now.getFullYear(), q * 3, 1);
@@ -47,18 +44,22 @@ function getDateRange(period) {
   return { start, end, label };
 }
 
-function buildContext(period, userRole) {
+async function buildContext(period, userRole) {
   const { start, end, label } = getDateRange(period);
   const isRestricted = RESTRICTED_ROLES.includes(userRole);
 
-  const allNotes = getData(NOTES_KEY).filter(n => {
-    const d = new Date(n.createdAt);
+  const notesSnap = await getDocs(query(collection(db, NOTES_COLLECTION)));
+  const meetingsSnap = await getDocs(query(collection(db, MEETINGS_COLLECTION)));
+
+  const allNotes = notesSnap.docs.map(d => d.data()).filter(n => {
+    const d = n.createdAtISO ? new Date(n.createdAtISO) : null;
+    if (!d) return false;
     const inRange = d >= start && d <= end;
     const visible = !isRestricted || !PRIVILEGED_ROLES.includes(n.creatorRole || n.role);
     return inRange && visible;
   });
 
-  const allMeetings = getData(MEETINGS_KEY).filter(m => {
+  const allMeetings = meetingsSnap.docs.map(d => d.data()).filter(m => {
     if (!m.date) return false;
     const d = new Date(m.date + 'T00:00:00');
     const inRange = d >= start && d <= end;
@@ -67,7 +68,7 @@ function buildContext(period, userRole) {
   });
 
   let ctx = `REPORT PERIOD: ${label.toUpperCase()}\nPERIOD TYPE: ${period.toUpperCase()} REPORT\n`;
-  if (isRestricted) ctx += `ACCESS LEVEL: Standard (some privileged records excluded)\n`;
+  if (isRestricted) ctx += `ACCESS LEVEL: Standard\n`;
   ctx += '\n';
 
   ctx += `=== MEETINGS (${allMeetings.length} total) ===\n`;
@@ -87,7 +88,7 @@ function buildContext(period, userRole) {
   ctx += `\n=== MEETING NOTES (${allNotes.length} entries) ===\n`;
   if (!allNotes.length) ctx += 'No notes in this period.\n';
   else allNotes.forEach(n => {
-    ctx += `\nTitle: ${n.title}\nAuthor: ${n.author}${n.role ? ' (' + n.role + ')' : ''}\nDate: ${new Date(n.createdAt).toLocaleDateString()}\n`;
+    ctx += `\nTitle: ${n.title}\nAuthor: ${n.author}${n.role ? ' (' + n.role + ')' : ''}\n`;
     if (n.summary) ctx += `Summary: ${n.summary}\n`;
     ctx += `Content:\n${n.details || n.content || ''}\n`;
   });
@@ -105,12 +106,23 @@ export default function ReportsPanel() {
   const [savedReports, setSavedReports] = useState([]);
   const [viewSaved, setViewSaved] = useState(null);
   const [showSaved, setShowSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
-  useEffect(() => { setSavedReports(getData(REPORTS_KEY)); }, []);
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const q = query(
+      collection(db, 'users', currentUser.uid, 'reports'),
+      orderBy('createdAt', 'desc')
+    );
+    return onSnapshot(q, (snap) => {
+      setSavedReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+  }, [currentUser?.uid]);
 
   const generate = async () => {
     setLoading(true); setReport(''); setViewSaved(null);
-    const context = buildContext(period, userRole);
+    const context = await buildContext(period, userRole);
     const { label } = getDateRange(period);
     const prompt = `Generate a professional YFJ North America ${period} report for: ${label}\n\n${context}`;
     try {
@@ -122,14 +134,35 @@ export default function ReportsPanel() {
     setLoading(false);
   };
 
-  const saveReport = () => {
-    if (!report) return;
+  const saveReport = async () => {
+    if (!report || !currentUser?.uid) return;
+    setSaving(true);
     const { label } = getDateRange(period);
-    const all = getData(REPORTS_KEY);
-    const newR = { id: Date.now().toString(), period, label, content: report, generatedAt: new Date().toISOString() };
-    const updated = [newR, ...all].slice(0, 20);
-    saveData(REPORTS_KEY, updated);
-    setSavedReports(updated);
+    await addDoc(collection(db, 'users', currentUser.uid, 'reports'), {
+      period,
+      label,
+      content: report,
+      generatedAt: new Date().toISOString(),
+      published: false,
+      createdAt: serverTimestamp(),
+    });
+    setSaving(false);
+  };
+
+  const publishReport = async (r) => {
+    if (!currentUser?.uid) return;
+    setPublishing(true);
+    const pubData = {
+      ...r,
+      publishedBy: currentUser.fullName || currentUser.email,
+      publishedByRole: userRole,
+      publishedAt: serverTimestamp(),
+      publishedAtISO: new Date().toISOString(),
+      published: true,
+    };
+    await setDoc(doc(db, 'publishedReports', r.id), pubData);
+    await updateDoc(doc(db, 'users', currentUser.uid, 'reports', r.id), { published: true });
+    setPublishing(false);
   };
 
   const download = (content, filename) => {
@@ -150,18 +183,22 @@ export default function ReportsPanel() {
     <div className="animate-slide-up">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.35em] mb-1.5" style={{color: '#fbbc04'}}>Cub Intelligence</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.35em] mb-1.5" style={{ color: '#fbbc04' }}>Cub Intelligence</p>
           <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Reports</h2>
           <p className="text-xs md:text-sm text-white/30 mt-1 italic">"I understood by the books..."</p>
         </div>
         {savedReports.length > 0 && (
           <button onClick={() => setShowSaved(!showSaved)} className="btn-secondary text-xs">
-            <FileText size={12} /> Saved ({savedReports.length})
+            <FileText size={12} /> My Reports ({savedReports.length})
           </button>
         )}
       </div>
 
-      {/* Period selector — horizontal on mobile */}
+      <div className="flex items-center gap-2 mb-3 p-3 rounded-xl" style={{ background: 'rgba(155,114,243,0.07)', border: '1px solid rgba(155,114,243,0.15)' }}>
+        <Lock size={11} style={{ color: '#9b72f3' }} />
+        <p className="text-[11px] text-white/50">Reports are <strong className="text-white/80">private to your account</strong> unless you choose to publish them.</p>
+      </div>
+
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
         {PERIODS.map(p => (
           <button
@@ -174,7 +211,6 @@ export default function ReportsPanel() {
         ))}
       </div>
 
-      {/* Ask Cub button */}
       <button onClick={generate} disabled={loading} className="btn-primary w-full mb-6">
         {loading ? (
           <><div className="spinner !w-4 !h-4" /> Cub is thinking...</>
@@ -186,28 +222,41 @@ export default function ReportsPanel() {
       {/* Saved reports list */}
       {showSaved && savedReports.length > 0 && (
         <div className="section-card p-4 mb-6 animate-slide-up">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">Saved Reports</p>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">My Reports</p>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
             {savedReports.map(r => (
-              <button
+              <div
                 key={r.id}
-                onClick={() => { setViewSaved(r); setReport(''); setShowSaved(false); }}
                 className={`w-full text-left p-3 rounded-xl border transition-all ${viewSaved?.id === r.id ? 'border-purple-500/30 bg-purple-500/10' : 'border-white/05 bg-white/[0.02] hover:bg-white/[0.04]'}`}
               >
-                <p className="text-xs font-bold text-white/70 truncate">{r.label}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="badge badge-purple">{r.period}</span>
-                  <span className="text-[10px] text-white/30">{new Date(r.generatedAt).toLocaleDateString()}</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { setViewSaved(r); setReport(''); setShowSaved(false); }} className="flex-1 text-left">
+                    <p className="text-xs font-bold text-white/70 truncate">{r.label}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="badge badge-purple">{r.period}</span>
+                      <span className="text-[10px] text-white/30">{r.generatedAt ? new Date(r.generatedAt).toLocaleDateString() : ''}</span>
+                      {r.published && <span className="badge badge-green"><Globe size={7} /> Published</span>}
+                    </div>
+                  </button>
+                  {!r.published && (
+                    <button
+                      onClick={() => publishReport(r)}
+                      disabled={publishing}
+                      className="flex-shrink-0 text-[9px] font-black px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                      style={{ background: 'rgba(52,168,83,0.15)', color: '#34a853', border: '1px solid rgba(52,168,83,0.25)' }}
+                    >
+                      <Globe size={9} /> Publish
+                    </button>
+                  )}
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Empty state */}
       {!hasOutput && !loading && (
-        <div className="section-card flex flex-col items-center justify-center text-center p-12" style={{minHeight: '320px'}}>
+        <div className="section-card flex flex-col items-center justify-center text-center p-12" style={{ minHeight: '320px' }}>
           <div className="w-16 h-16 rounded-full gemini-gradient flex items-center justify-center mb-5 animate-pulse-glow">
             <Sparkles size={28} className="text-white" />
           </div>
@@ -219,11 +268,10 @@ export default function ReportsPanel() {
         </div>
       )}
 
-      {/* Loading state */}
       {loading && (
-        <div className="section-card flex flex-col items-center justify-center text-center p-12" style={{minHeight: '320px'}}>
+        <div className="section-card flex flex-col items-center justify-center text-center p-12" style={{ minHeight: '320px' }}>
           <div className="w-14 h-14 rounded-full gemini-gradient flex items-center justify-center mb-4"
-            style={{animation: 'spin-slow 1.8s linear infinite'}}>
+            style={{ animation: 'spin-slow 1.8s linear infinite' }}>
             <Sparkles size={24} className="text-white" />
           </div>
           <p className="text-white/70 font-black text-sm">Cub is thinking...</p>
@@ -231,7 +279,6 @@ export default function ReportsPanel() {
         </div>
       )}
 
-      {/* Report output */}
       {hasOutput && !loading && (
         <div className="report-container animate-slide-up">
           <div className="flex items-center justify-between mb-5 pb-4 border-b border-white/[0.07]">
@@ -240,20 +287,32 @@ export default function ReportsPanel() {
                 <Sparkles size={14} className="text-white" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-purple-400">Cub Report</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-purple-400">Cub Report</p>
+                  {viewSaved?.published ? (
+                    <span className="badge badge-green"><Globe size={7} /> Published</span>
+                  ) : (
+                    <span className="badge badge-purple"><Lock size={7} /> Private</span>
+                  )}
+                </div>
                 <p className="text-xs font-bold text-white">{activeLabel}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="badge badge-purple">{activePeriod}</span>
               {report && !viewSaved && (
-                <button onClick={saveReport} className="btn-secondary" style={{padding: '6px 12px', fontSize: '10px'}}>
-                  <FileText size={11} /> Save
+                <button onClick={saveReport} disabled={saving} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '10px' }}>
+                  {saving ? <><div className="spinner !w-3 !h-3" /> Saving...</> : <><FileText size={11} /> Save</>}
+                </button>
+              )}
+              {viewSaved && !viewSaved.published && (
+                <button onClick={() => publishReport(viewSaved)} disabled={publishing} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '10px', color: '#34a853' }}>
+                  <Globe size={11} /> Publish
                 </button>
               )}
               <button
                 onClick={() => download(activeReport, `yfj-cub-${activePeriod}-${Date.now()}.md`)}
-                className="btn-secondary" style={{padding: '6px 12px', fontSize: '10px'}}
+                className="btn-secondary" style={{ padding: '6px 12px', fontSize: '10px' }}
               >
                 <Download size={11} /> Export
               </button>

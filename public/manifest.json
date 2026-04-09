@@ -1,0 +1,24 @@
+{
+  "name": "Youth for Jesus North America",
+  "short_name": "YFJ NA",
+  "description": "Official Management System for Youth for Jesus North America",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#04080F",
+  "theme_color": "#04080F",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

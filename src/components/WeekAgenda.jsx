@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarDays, Clock, User, ChevronLeft, ChevronRight } from 'lucide-react';
-
-const KEY = 'yfj_meetings';
-function getMeetings() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } }
+import { db } from '../firebase/config';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -30,7 +29,12 @@ export default function WeekAgenda() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState(null);
 
-  useEffect(() => { setMeetings(getMeetings()); }, []);
+  useEffect(() => {
+    const q = query(collection(db, 'meetings'), orderBy('date', 'asc'));
+    return onSnapshot(q, (snap) => {
+      setMeetings(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+  }, []);
 
   const getWeekStart = (offset) => {
     const today = new Date();
@@ -68,9 +72,9 @@ export default function WeekAgenda() {
 
   return (
     <div className="animate-slide-up">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-coral-400 mb-2" style={{color: '#d96570'}}>Weekly Overview</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.35em] mb-2" style={{ color: '#d96570' }}>Weekly Overview</p>
           <h2 className="text-2xl font-black text-white tracking-tight">Week's Agenda</h2>
           <p className="text-sm text-white/30 mt-1 italic">"I understood by the books..."</p>
         </div>
@@ -100,7 +104,6 @@ export default function WeekAgenda() {
           const isSelected = selectedDay === i;
           const hasActivity = dayMeetings.length > 0;
 
-          // Color logic
           let dateColor = 'text-white/80';
           if (isToday) dateColor = 'text-green-500';
           else if (isPast) dateColor = 'text-red-500';
@@ -121,7 +124,7 @@ export default function WeekAgenda() {
               {dayMeetings.length > 0 ? (
                 <div className="space-y-1">
                   {dayMeetings.slice(0, 2).map((m, mi) => (
-                    <div key={mi} className="text-[9px] font-bold text-blue-300 truncate bg-blue-500/10 rounded px-1.5 py-0.5">
+                    <div key={mi} className={`text-[9px] font-bold truncate rounded px-1.5 py-0.5 ${m.status === 'Completed' ? 'line-through opacity-50 bg-white/5 text-white/40' : 'text-blue-300 bg-blue-500/10'}`}>
                       {m.timeStart && `${m.timeStart} `}{m.title.slice(0, 14)}{m.title.length > 14 ? '…' : ''}
                     </div>
                   ))}
@@ -148,19 +151,17 @@ export default function WeekAgenda() {
               <p className="text-white/30 text-sm py-4 text-center">No meetings scheduled for this day.</p>
             ) : (
               <div className="space-y-3">
-                {selectedMeetings.map(m => (
-                  <MeetingCard key={m.id} m={m} />
-                ))}
+                {selectedMeetings.map(m => <MeetingCard key={m.id} m={m} />)}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* This week's full agenda */}
+      {/* Full week agenda */}
       <div className="section-card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="section-header-icon" style={{background: 'linear-gradient(135deg, #d96570, #9b72f3)'}}>
+          <div className="section-header-icon" style={{ background: 'linear-gradient(135deg, #d96570, #9b72f3)' }}>
             <CalendarDays size={18} className="text-white" />
           </div>
           <div>
@@ -175,7 +176,8 @@ export default function WeekAgenda() {
           </div>
         ) : (
           <div className="space-y-3">
-            {allThisWeek.map(m => <MeetingCard key={m.id} m={m} showDate />)}
+            {allThisWeek.filter(m => m.status !== 'Completed').map(m => <MeetingCard key={m.id} m={m} showDate />)}
+            {allThisWeek.filter(m => m.status === 'Completed').map(m => <MeetingCard key={m.id} m={m} showDate completed />)}
           </div>
         )}
       </div>
@@ -183,17 +185,23 @@ export default function WeekAgenda() {
   );
 }
 
-function MeetingCard({ m, showDate }) {
+function MeetingCard({ m, showDate, completed }) {
   const formatDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : '';
   const bgColor = TYPE_BG[m.type] || 'rgba(155,114,243,0.08)';
 
   return (
-    <div className="rounded-xl p-4 border border-white/[0.07] transition-all hover:border-white/[0.12]" style={{background: bgColor}}>
+    <div
+      className="rounded-xl p-4 border border-white/[0.07] transition-all hover:border-white/[0.12]"
+      style={{
+        background: completed ? 'rgba(255,255,255,0.01)' : bgColor,
+        opacity: completed ? 0.6 : 1,
+      }}
+    >
       <div className="flex items-start gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={`badge ${TYPE_COLORS[m.type] || 'badge-blue'}`}>{m.type}</span>
-            <h4 className="text-sm font-black text-white">{m.title}</h4>
+            <h4 className={`text-sm font-black text-white ${completed ? 'line-through opacity-60' : ''}`}>{m.title}</h4>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-white/40 flex-wrap">
             {showDate && m.date && <span className="flex items-center gap-1"><CalendarDays size={10} />{formatDate(m.date)}</span>}
@@ -215,9 +223,6 @@ function MeetingCard({ m, showDate }) {
           <p className="text-[10px] font-black uppercase tracking-widest text-white/25 mb-1">Agenda</p>
           <p className="text-xs text-white/50 whitespace-pre-line leading-relaxed">{m.agenda}</p>
         </div>
-      )}
-      {m.createdBy && (
-        <p className="text-[10px] text-white/20 mt-2">Created by {m.createdBy}</p>
       )}
     </div>
   );
