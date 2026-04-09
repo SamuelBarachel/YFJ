@@ -71,7 +71,7 @@ export default function WeekAgenda() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] text-coral-400 mb-2" style={{color: '#d96570'}}>Weekly Overview</p>
-          <h2 className="text-3xl font-black text-white tracking-tight">Week's Agenda</h2>
+          <h2 className="text-2xl font-black text-white tracking-tight">Week's Agenda</h2>
           <p className="text-sm text-white/30 mt-1 italic">"I understood by the books..."</p>
         </div>
         <div className="flex items-center gap-2">
