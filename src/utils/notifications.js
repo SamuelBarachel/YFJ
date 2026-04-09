@@ -10,6 +10,18 @@ function getAudioContext() {
   return audioCtx;
 }
 
+// Helper for VAPID key conversion
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export function unlockAudio() {
   try { getAudioContext(); } catch {}
 }
@@ -73,6 +85,38 @@ export async function requestNotificationPermission() {
   if (Notification.permission === 'denied') return 'denied';
   const result = await Notification.requestPermission();
   return result;
+}
+
+/**
+ * New addition: Subscribes the user to Push using Render Env Var
+ * This allows the server to send notifications to THIS device.
+ */
+export async function subscribeUserToPush() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+    if (!publicKey) {
+      console.warn('VAPID public key not found in environment variables');
+      return;
+    }
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+
+    // You will need to create this endpoint on your Render backend
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    return subscription;
+  } catch (err) {
+    console.error('Push subscription failed:', err);
+  }
 }
 
 export function scheduleNotification(title, body, delayMs, tag) {
