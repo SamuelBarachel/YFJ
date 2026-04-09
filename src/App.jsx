@@ -328,7 +328,7 @@ function DashboardPanel({ setActiveTab, currentUser, isMobile }) {
     { label: "Week's Agenda",        desc: 'View this week\'s schedule',    tab: 'agenda',         gradient: 'linear-gradient(135deg,#d96570,#fbbc04)' },
     { label: 'Schedule Meeting',     desc: 'Add to calendar & roster',      tab: 'calendar',       gradient: 'linear-gradient(135deg,#0dbfcf,#4285f4)' },
     { label: 'Ask Cub',              desc: 'Generate AI-powered reports',   tab: 'reports',        gradient: 'linear-gradient(135deg,#fbbc04,#d96570)' },
-    { label: 'Post Announcement',    desc: 'Share organization news',       tab: 'announcements',  gradient: 'linear-gradient(135deg,#34a853,#0dbfcf)' },
+    { label: 'Publish',    desc: 'Share organization news',       tab: 'announcements',  gradient: 'linear-gradient(135deg,#34a853,#0dbfcf)' },
   ];
 
   const firstName = currentUser?.fullName ? currentUser.fullName.split(' ')[0] : null;
